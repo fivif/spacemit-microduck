@@ -1,4 +1,4 @@
-# K3 移植案例 —— 用 SpacemiT K3 替换瑞芯微大脑
+# K3 移植案例 —— 用 SpacemiT K3 作为机器鸭大脑
 
 > **一句话**:把主仓 `microduck`(Rust 运行时)原生编译到 **SpacemiT K3(riscv64)**,
 > 加载官方 ONNX 策略驱动机器人 —— 软件层面证明"**RISC-V 换脑**"成立。
@@ -11,7 +11,7 @@
 
 | 线 | 决策 |
 |---|---|
-| **核心目标** | 用 SpacemiT K3 替换真机大脑 **RK3566 / Radxa Zero 3W** |
+| **核心目标** | 用 SpacemiT K3 作为真机大脑(原平台核心板) |
 | 仿真环境 | **不上板** —— `duck-body`(CPU MuJoCo)+ `robotd --sim` 留在 x86 开发台 |
 | 训练 | **不上板** —— mjlab + MuJoCo Warp + PPO 是 NVIDIA CUDA 专属,与芯片无关 |
 | 后续 | K1 平移(同方法,CPU 更弱一档,无独立 EP 库) |

@@ -32,7 +32,7 @@
 1. UART 引脚/电平核对(1Mbps 总线)
 2. 供电方案(Pico-ITX vs 原 5V)+ 尺寸试装
 3. 裁剪 daemon 集 systemd units(Bianbu)
-4. IMU(id200)+ 15 舵机回读 → 与 RK3566 基线对比
+4. IMU(id200)+ 15 舵机回读 → 与原平台基线对比
 5. 视觉:原 rknn 检测器禁用后,机载视觉**下一步**是 SpaceMIT EP 化(60TOPS)——另立项
 
 ## P3 · K1 平移(后续)

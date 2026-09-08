@@ -10,8 +10,8 @@
 
 ---
 
-用 **SpacemiT K3 / K1** 替换 Microduck 真机的瑞芯微 RK3566 大脑 ——
-把主仓 `microduck` 的 Rust 运行时软件栈**原生编译到 RISC-V**。
+用 **SpacemiT K3 / K1** 作为 Microduck 机器鸭的大脑 ——
+把主仓 `microduck` 的 Rust 运行时软件栈**原生编译到 RISC-V**，由 RISC-V 板直接驱动舵机总线与策略。
 **仿真与训练不上板**（继续留在 x86/GPU 开发链，训练结果经既有 ONNX 策略链下发）。
 
 ## 结果

@@ -6,8 +6,8 @@
 > **K3**: `jax-spacemitk3picoitx` · 10.5.90.195 / root:bianbu(yolos-box 同款机)
 > **K1**: 后续目标,K3 方案平移(见 [`docs/04`](docs/04-K1版前瞻.md) 与 [`../K1/README.md`](../K1/README.md))
 >
-> **一句话目标(2026-09-08 方向定稿)**: **用 SpacemiT K3 替换 Microduck 真机的瑞芯微大脑
-> (RK3566 / Radxa Zero 3W)** —— 即把 microduck 主仓的 **Rust 运行时软件栈** 移植到 RISC-V;
+> **一句话目标(2026-09-08 方向定稿)**: **用 SpacemiT K3 作为 Microduck 机器鸭的大脑**
+> —— 即把 microduck 主仓的 **Rust 运行时软件栈** 移植到 RISC-V;
 > 仿真与训练**不搬 K3**(继续留在 x86/GPU 开发链,训练结果通过既有的 ONNX 策略链下发)。
 
 ---
@@ -18,23 +18,23 @@
 |---|---|
 | 仿真环境 | **不上 K3** —— `duck-body`(CPU MuJoCo)与 `robotd --sim` 停在 x86 开发台;K3 只跑真机代码 |
 | 训练 | **不上 K3** —— mjlab+MuJoCo Warp+PPO 需 NVIDIA GPU,本就不行(CUDA 专属) |
-| **核心目标** | **替换瑞芯微**:microduck 主仓运行时(robotd 50Hz 环 + 策略 + 总线 + 周边 daemon)在 K3 上原生编译运行 |
+| **核心目标** | **换脑**:microduck 主仓运行时(robotd 50Hz 环 + 策略 + 总线 + 周边 daemon)在 K3 上原生编译运行 |
 | 后续 | K1 平移(同方法,CPU 更弱的一档,无 EP NPU) |
 
-**案例叙事**: RISC-V AI CPU(60 TOPS)当"鸭脑" —— 真机舵机总线直接由 SpacemiT 板驱动,RL 步态策略经 ONNX Runtime(带官方 EP)执行;换脑意味着控制环算力富余量大增,为后续机载视觉(鸭子检测等,现为 Rockchip NPU 专属)留出空间。
+**案例叙事**: RISC-V AI CPU(60 TOPS)当"鸭脑" —— 真机舵机总线直接由 SpacemiT 板驱动,RL 步态策略经 ONNX Runtime(带官方 EP)执行;换脑意味着控制环算力富余量大增,为后续机载视觉(鸭子检测等)留出空间。
 
 ---
 
 ## 现状基线
 
-| 项 | RK3566(现状脑) | K3(目标脑) | 结论 |
+| 项 | 现状脑 | K3(目标脑) | 结论 |
 |---|---|---|---|
-| CPU | 4×A55 @1.8GHz | 8×X100 @2.4GHz(单核 SPECint 9.5 ≈ A76) | ✅ 约 2-4× 富余 |
+| CPU | 4 核 @1.8GHz(原平台) | 8×X100 @2.4GHz(单核 SPECint 9.5 ≈ A76) | ✅ 约 2-4× 富余 |
 | OS | Armbian(Trixie, glibc ≥2.31) | Bianbu 4.0.1(glibc 2.43) | ✅ 同代 systemd |
 | ONNX Runtime | 地板 1.23 | **1.24.2+spacemit.a1 + EP 主库(已装)** | ✅✅ 超地板 |
-| Media/NPU 加速 | rknn + mpp h264 + webrtcsink | 无对应(无摄像头;EP 是推理 EP) | ❌ **需裁剪** |
+| Media/NPU 加速 | 原平台专属(rknn + mpp h264 + webrtcsink) | 无对应(无摄像头;EP 是推理 EP) | ❌ **需裁剪** |
 | 舵机总线 | /dev/ttyS2(1Mbps UART) | K3 有 15×UART | ✅ 可接,板级待验 |
-| 供电/尺寸 | Radxa Zero 3W ~4×2cm | K3 Pico-ITX 2.5" | ⚠️ 真机集成需评估(见 01) |
+| 供电/尺寸 | 原核心板 ~4×2cm | K3 Pico-ITX 2.5" | ⚠️ 真机集成需评估(见 01) |
 
 ## 目录
 
