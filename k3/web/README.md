@@ -3,6 +3,15 @@
 > **打开地址:`http://10.5.90.195:8081/`**(手机同 WiFi 也行)
 > 极简 iOS 26(液态玻璃)风格:状态 + 摇杆 + 动作 + 技能。零依赖(Python 标准库 + 单文件 HTML)。
 
+## 截图
+
+| | |
+|---|---|
+| ![桌面](ui-desktop.png) | ![手机](ui-phone.png) |
+| 桌面端 | 手机端 |
+
+![运行截图](ui-shot.png)
+
 ## 部署位置
 
 - K3:`/opt/microduck-k3/web/`(`server.py` + `index.html`),进程 `python3 server.py --port 8081`
