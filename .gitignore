@@ -1,0 +1,18 @@
+target/
+**/target/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# 仿真与构建产物
+*.egg-info/
+.pytest_cache/
+
+# 本地临时
+*.log
+tmp/
+.DS_Store
+Thumbs.db

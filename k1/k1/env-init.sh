@@ -1,0 +1,70 @@
+#!/bin/bash
+# K1 一次性环境初始化:apt 依赖 + rustup + 主仓源码就位
+#
+# 在 K1(root@<k1-ip>,密码 bianbu)上执行。
+# 与 K3 版的差异:① 路径 /opt/microduck-k1;② K1 的 github.com 不可达,源码需从本机 scp 上来;
+# ③ K1 缺 cmake/libudev-dev/pkg-config,一并装上。
+set -euo pipefail
+
+echo "[1/5] apt 依赖(cmake / libudev-dev / pkg-config / ONNX Runtime)…"
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -qq
+# libudev-dev + pkg-config 是 padd -> gilrs -> libudev-sys 的构建依赖。
+# onnxruntime 是策略推理用的 libonnxruntime.so —— 注意 K1 apt 里是 1.2.2 包版本,
+# 实际提供 libonnxruntime.so.1.18.1,低于主仓地板 1.23,见 docs/04。
+apt-get install -y -qq cmake libudev-dev pkg-config onnxruntime
+
+echo "[2/5] rustup…"
+if ! command -v rustc >/dev/null 2>&1; then
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
+    sh -s -- -y --profile minimal --no-modify-path
+fi
+export PATH="$HOME/.cargo/bin:$PATH"
+rustc -V
+cargo -V
+# 本机就是 riscv64gc,默认 target 即可;显式确认一下。
+rustup target list --installed | grep -q riscv64gc-unknown-linux-gnu && echo "target ok"
+
+echo "[3/5] 源码就位…"
+mkdir -p /opt/microduck-k1
+cd /opt/microduck-k1
+if [ ! -d microduck ]; then
+  # K1 上 github.com 不可达(git clone 必失败),两条路:
+  #   A) 本机 tar 打包后 scp 过来(推荐,见 docs/03 §2)
+  #   B) 用 codeload 下 tarball(只含 main,拿不到 k3-sim-port 改动,还需另打补丁)
+  if [ -f microduck-k1-full.tar.gz ]; then
+    tar xzf microduck-k1-full.tar.gz && rm -f microduck-k1-full.tar.gz
+  elif [ -f /tmp/microduck-k1-full.tar.gz ]; then
+    tar xzf /tmp/microduck-k1-full.tar.gz -C /opt/microduck-k1
+  else
+    echo "!! 未找到源码包。请先在本机执行 docs/03 §2 的打包+scp,再重跑本脚本。" >&2
+    exit 1
+  fi
+fi
+cd microduck
+git config --global --add safe.directory "$(pwd)"   # 否则 git 报"可疑的仓库所有权"
+
+echo "[4/5] 补 --sim(若分支未带)…"
+if [ ! -f duck-control/src/sim.rs ]; then
+  patch_file="$(dirname "$0")/k3-sim-port.patch"
+  if [ -f "$patch_file" ]; then
+    git apply "$patch_file" && echo "k3-sim-port.patch applied"
+  else
+    echo "!! 缺 duck-control/src/sim.rs 且找不到 k3-sim-port.patch" >&2
+    exit 1
+  fi
+fi
+ls -la duck-control/src/sim.rs
+
+echo "[5/5] 环境事实留档…"
+{
+  echo "model: $(cat /proc/device-tree/model 2>/dev/null)"
+  echo "kernel: $(uname -r)"
+  echo "cpu: $(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2-)"
+  echo "mem: $(free -h | awk '/Mem|内存/{print $2}')"
+  echo "glibc: $(ldd --version | head -1)"
+  echo "rustc: $(rustc -V)"
+  echo "onnxruntime.so: $(readlink -f /usr/lib/libonnxruntime.so 2>/dev/null || echo MISSING)"
+} | tee /opt/microduck-k1/env-facts.txt
+
+echo "done. → 下一步: bash $(dirname "$0")/build-k1.sh"

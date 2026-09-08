@@ -1,0 +1,20 @@
+[Unit]
+Description=Microduck web console (robotd control surface)
+Documentation=file:///opt/microduck-k3/web/README.md
+# robotd is started by hand today; when it becomes a unit, this should `After=robotd.service`
+# and `Requires=` it. Until then the console reconnects on its own, so ordering buys nothing.
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/microduck-k3/web/server.py --port 8081
+WorkingDirectory=/opt/microduck-k3/web
+Restart=always
+RestartSec=2
+# It talks to /run/robotd.sock, which is root:robot 0660 — run as root like robotctl does.
+User=root
+# A console with no robot is a page that says "未连接": keep it up either way.
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

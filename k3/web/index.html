@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#05060a">
+<title>Microduck</title>
+<style>
+  :root{
+    --ink: #f5f5f7;
+    --ink-2: rgba(235,235,245,.6);
+    --ink-3: rgba(235,235,245,.38);
+    --hairline: rgba(255,255,255,.14);
+    --glass: rgba(255,255,255,.075);
+    --glass-2: rgba(255,255,255,.055);
+    --blue: #0a84ff;
+    --green: #30d158;
+    --orange: #ff9f0a;
+    --red: #ff453a;
+    --spring: cubic-bezier(.34,1.56,.64,1);
+    --ease: cubic-bezier(.22,.61,.36,1);
+  }
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    font: 15px/1.4 -apple-system, "SF Pro Text", "SF Pro Display", system-ui, "PingFang SC", "Helvetica Neue", sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(120% 90% at 12% 0%,  #123 0%, transparent 55%),
+      radial-gradient(90% 70% at 100% 8%,  #2a1a3a 0%, transparent 52%),
+      radial-gradient(110% 90% at 50% 108%, #0b2b3a 0%, transparent 58%),
+      #05060a;
+    background-attachment: fixed;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+    user-select: none;
+    touch-action: none;
+  }
+  /* a slow aurora so the glass has something to refract */
+  body::before{
+    content:"";
+    position: fixed; inset: -25%;
+    background:
+      radial-gradient(38% 30% at 30% 35%, rgba(10,132,255,.20), transparent 70%),
+      radial-gradient(30% 26% at 72% 60%, rgba(191,90,242,.16), transparent 70%),
+      radial-gradient(34% 26% at 45% 85%, rgba(48,209,88,.10), transparent 70%);
+    filter: blur(30px);
+    animation: drift 26s var(--ease) infinite alternate;
+    pointer-events: none;
+  }
+  @keyframes drift{ from{ transform: translate3d(-2%,-1%,0) scale(1); } to{ transform: translate3d(3%,2%,0) scale(1.08); } }
+
+  .app{
+    position: relative;
+    height: 100%;
+    max-width: 440px;
+    margin: 0 auto;
+    padding: max(14px, env(safe-area-inset-top)) 18px max(18px, env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  /* ── glass ─────────────────────────────────────────────── */
+  .glass{
+    background: linear-gradient(180deg, var(--glass), var(--glass-2));
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: .5px solid var(--hairline);
+    box-shadow:
+      inset 0 .5px 0 rgba(255,255,255,.22),
+      inset 0 -.5px 0 rgba(0,0,0,.18),
+      0 12px 40px rgba(0,0,0,.34);
+    border-radius: 28px;
+  }
+
+  /* ── header ────────────────────────────────────────────── */
+  header{ display:flex; align-items:center; gap:12px; padding: 4px 6px; }
+  .dot{
+    width:9px; height:9px; border-radius:50%;
+    background: var(--ink-3);
+    box-shadow: 0 0 0 4px rgba(255,255,255,.06);
+    transition: background .4s var(--ease), box-shadow .4s var(--ease);
+  }
+  .dot.ok{ background: var(--green); box-shadow: 0 0 0 4px rgba(48,209,88,.14), 0 0 18px rgba(48,209,88,.55); }
+  .dot.warn{ background: var(--orange); box-shadow: 0 0 0 4px rgba(255,159,10,.14), 0 0 18px rgba(255,159,10,.5); }
+  .dot.bad{ background: var(--red); box-shadow: 0 0 0 4px rgba(255,69,58,.16), 0 0 18px rgba(255,69,58,.55); }
+  .name{ font-size:17px; font-weight:600; letter-spacing:.2px; }
+  .sub{ font-size:12px; color: var(--ink-3); margin-top:1px; font-variant-numeric: tabular-nums; }
+  header .spacer{ flex:1; }
+
+  .chip{
+    display:inline-flex; align-items:center; gap:6px;
+    height: 34px; padding: 0 13px;
+    border-radius: 999px; font-size:13px; font-weight:600;
+    background: rgba(255,255,255,.09);
+    border: .5px solid var(--hairline);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .chip b{ color: var(--ink); font-weight:600; }
+  .chip.live b{ color: var(--blue); }
+  .chip.danger b{ color: var(--red); }
+
+  /* ── stats ─────────────────────────────────────────────── */
+  .stats{ display:flex; gap:8px; padding: 0 2px; }
+  .stats .chip{ flex:1; justify-content:center; height:36px; }
+
+  /* ── stick ─────────────────────────────────────────────── */
+  .stickwrap{
+    flex:1; min-height: 200px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap: 16px;
+  }
+  .stick{
+    position:relative;
+    width: min(64vw, 250px, 34vh); aspect-ratio: 1;
+    border-radius: 50%;
+    background:
+      radial-gradient(60% 60% at 50% 22%, rgba(255,255,255,.10), transparent 70%),
+      linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: .5px solid var(--hairline);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.20), 0 24px 60px rgba(0,0,0,.42);
+    touch-action: none;
+  }
+  .stick::after{ /* the reticle */
+    content:""; position:absolute; inset: 22%;
+    border-radius:50%; border:.5px dashed rgba(255,255,255,.10);
+  }
+  .knob{
+    position:absolute; left:50%; top:50%;
+    width: 34%; aspect-ratio:1; margin: -17% 0 0 -17%;
+    border-radius:50%;
+    background: linear-gradient(180deg, rgba(255,255,255,.95), rgba(230,235,245,.72));
+    box-shadow: 0 10px 26px rgba(0,0,0,.45), inset 0 1px 1px rgba(255,255,255,.9), inset 0 -8px 18px rgba(120,140,180,.35);
+    transition: transform .45s var(--spring);
+    will-change: transform;
+  }
+  .stick.active .knob{ transition: none; }
+  .knob::after{
+    content:""; position:absolute; inset: 26% 26% 40% 26%;
+    border-radius: 50%;
+    background: radial-gradient(60% 70% at 50% 30%, rgba(255,255,255,.95), rgba(255,255,255,0));
+  }
+  .stick .hint{
+    position:absolute; left:0; right:0; bottom: 14px; text-align:center;
+    font-size:11px; letter-spacing:.6px; text-transform:uppercase; color: var(--ink-3);
+  }
+
+  /* ── yaw ───────────────────────────────────────────────── */
+  .yaw{
+    width: min(72vw, 290px); height: 42px;
+    border-radius: 999px; position: relative;
+    background: linear-gradient(180deg, var(--glass), var(--glass-2));
+    border:.5px solid var(--hairline);
+    backdrop-filter: blur(30px) saturate(170%);
+    -webkit-backdrop-filter: blur(30px) saturate(170%);
+    box-shadow: inset 0 .5px 0 rgba(255,255,255,.2);
+    touch-action:none; overflow:hidden;
+  }
+  .yaw .tick{ position:absolute; top:50%; width:1px; height:10px; margin-top:-5px; background:rgba(255,255,255,.18); }
+  .yaw .knobline{
+    position:absolute; top:50%; left:50%; width:36px; height:26px; margin:-13px 0 0 -18px;
+    border-radius: 13px;
+    background: linear-gradient(180deg, rgba(255,255,255,.95), rgba(225,232,245,.72));
+    box-shadow: 0 6px 18px rgba(0,0,0,.4), inset 0 1px 1px rgba(255,255,255,.9);
+    transition: transform .45s var(--spring);
+  }
+  .yaw.active .knobline{ transition:none; }
+
+  /* ── buttons ───────────────────────────────────────────── */
+  .row{ display:flex; gap:10px; }
+  button{
+    -webkit-appearance:none; appearance:none; border:0; cursor:pointer;
+    font: inherit; color: var(--ink);
+    background: linear-gradient(180deg, rgba(255,255,255,.11), rgba(255,255,255,.05));
+    border: .5px solid var(--hairline);
+    backdrop-filter: blur(30px) saturate(170%);
+    -webkit-backdrop-filter: blur(30px) saturate(170%);
+    box-shadow: inset 0 .5px 0 rgba(255,255,255,.22), 0 8px 22px rgba(0,0,0,.28);
+    border-radius: 999px;
+    height: 52px; flex:1;
+    font-size:15px; font-weight:600; letter-spacing:.2px;
+    transition: transform .34s var(--spring), background .25s var(--ease), opacity .2s;
+    touch-action: manipulation;
+  }
+  button:active{ transform: scale(.955); }
+  button.primary{ background: linear-gradient(180deg, rgba(10,132,255,.95), rgba(0,110,230,.85)); border-color: rgba(255,255,255,.28); }
+  button.primary.green{ background: linear-gradient(180deg, rgba(48,209,88,.95), rgba(28,170,70,.85)); }
+  button.ghost{ background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03)); color: var(--ink-2); }
+  button.danger{ color: var(--red); }
+  button[disabled]{ opacity:.4; pointer-events:none; }
+  .skills{ display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; }
+  .skills button{ height:46px; font-size:13px; font-weight:600; }
+
+  /* ── toast ─────────────────────────────────────────────── */
+  .toast{
+    position: fixed; left:50%; bottom: max(24px, env(safe-area-inset-bottom));
+    transform: translate(-50%, 20px);
+    padding: 11px 18px; border-radius: 999px;
+    background: rgba(20,22,28,.72);
+    border:.5px solid var(--hairline);
+    backdrop-filter: blur(30px) saturate(170%);
+    -webkit-backdrop-filter: blur(30px) saturate(170%);
+    font-size:13px; font-weight:500; color: var(--ink);
+    opacity:0; pointer-events:none;
+    transition: opacity .3s var(--ease), transform .45s var(--spring);
+    box-shadow: 0 14px 40px rgba(0,0,0,.4);
+    z-index: 10;
+  }
+  .toast.show{ opacity:1; transform: translate(-50%, 0); }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <span class="dot" id="dot"></span>
+    <div>
+      <div class="name">Microduck</div>
+      <div class="sub" id="sub">连接中…</div>
+    </div>
+    <div class="spacer"></div>
+    <span class="chip" id="policy">—</span>
+  </header>
+
+  <div class="stats">
+    <span class="chip" id="hz">— Hz</span>
+    <span class="chip" id="batt">— %</span>
+    <span class="chip" id="temp">— °C</span>
+  </div>
+
+  <div class="stickwrap">
+    <div class="stick" id="stick">
+      <div class="knob" id="knob"></div>
+      <div class="hint">移动</div>
+    </div>
+    <div class="yaw" id="yaw">
+      <div class="knobline" id="yawKnob"></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <button class="primary green" id="btnRise">站立</button>
+    <button class="ghost" id="btnStop">停止</button>
+  </div>
+  <div class="skills" id="skills"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+
+  // Trained command ranges (microduck_velocity_env_cfg): x ±0.4, y ±0.3, yaw ±1.0.
+  const MAX_VX = 0.4, MAX_VY = 0.3, MAX_YAW = 1.0;
+  const SEND_HZ = 20;
+  const STATE_MS = 600;
+
+  let drive = { vx: 0, vy: 0, vyaw: 0 };
+  let lastSend = 0;
+  let pending = false;
+  let confirmUntil = 0;   // two-step arm for the destructive button
+
+  // ── toast ────────────────────────────────────────────────
+  let toastTimer = 0;
+  function toast(text, ms = 1800) {
+    const el = $("toast");
+    el.textContent = text;
+    el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove("show"), ms);
+  }
+
+  // ── api ──────────────────────────────────────────────────
+  async function api(path, body) {
+    const options = body === undefined
+      ? {}
+      : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
+    const response = await fetch(path, { cache: "no-store", ...options });
+    if (!response.ok) throw new Error(`${response.status}`);
+    return response.json();
+  }
+
+  function sendDrive(force = false) {
+    const now = performance.now();
+    if (!force && now - lastSend < 1000 / SEND_HZ) return;
+    if (pending && !force) return;
+    lastSend = now;
+    pending = true;
+    api("/api/move", drive)
+      .catch(() => {})
+      .finally(() => { pending = false; });
+  }
+
+  // ── joystick ─────────────────────────────────────────────
+  const stick = $("stick"), knob = $("knob");
+  let stickPointer = null;
+
+  function stickMove(event) {
+    const rect = stick.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+    const radius = rect.width / 2 - rect.width * 0.17; // keep the knob inside
+    let dx = event.clientX - cx, dy = event.clientY - cy;
+    const distance = Math.hypot(dx, dy);
+    if (distance > radius) { dx = dx / distance * radius; dy = dy / distance * radius; }
+    knob.style.transform = `translate(${dx}px, ${dy}px)`;
+
+    const nx = dx / radius, ny = dy / radius;
+    const dead = 0.10;
+    const shape = (v) => Math.abs(v) < dead ? 0 : Math.sign(v) * (Math.abs(v) - dead) / (1 - dead);
+    // Screen up = forward (vx > 0), screen left = left (vy > 0).
+    drive.vx = -shape(ny) * MAX_VX;
+    drive.vy = -shape(nx) * MAX_VY;
+    sendDrive();
+  }
+
+  function stickRelease() {
+    stickPointer = null;
+    stick.classList.remove("active");
+    knob.style.transform = "translate(0px, 0px)";
+    drive.vx = 0; drive.vy = 0;
+    sendDrive(true);
+  }
+
+  stick.addEventListener("pointerdown", (event) => {
+    stickPointer = event.pointerId;
+    stick.classList.add("active");
+    stick.setPointerCapture(event.pointerId);
+    stickMove(event);
+  });
+  stick.addEventListener("pointermove", (event) => {
+    if (event.pointerId === stickPointer) stickMove(event);
+  });
+  stick.addEventListener("pointerup", stickRelease);
+  stick.addEventListener("pointercancel", stickRelease);
+
+  // ── yaw strip ────────────────────────────────────────────
+  const yaw = $("yaw"), yawKnob = $("yawKnob");
+  let yawPointer = null;
+  for (const fraction of [0.25, 0.5, 0.75]) { // three ticks
+    const tick = document.createElement("div");
+    tick.className = "tick";
+    tick.style.left = `${fraction * 100}%`;
+    yaw.appendChild(tick);
+  }
+
+  function yawMove(event) {
+    const rect = yaw.getBoundingClientRect();
+    const centre = rect.left + rect.width / 2;
+    const limit = rect.width / 2 - 20;
+    let dx = event.clientX - centre;
+    dx = Math.max(-limit, Math.min(limit, dx));
+    yawKnob.style.transform = `translateX(${dx}px)`;
+    const nx = dx / limit;
+    const dead = 0.08;
+    drive.vyaw = Math.abs(nx) < dead ? 0 : -nx * MAX_YAW;
+    sendDrive();
+  }
+
+  function yawRelease() {
+    yawPointer = null;
+    yaw.classList.remove("active");
+    yawKnob.style.transform = "translateX(0)";
+    drive.vyaw = 0;
+    sendDrive(true);
+  }
+
+  yaw.addEventListener("pointerdown", (event) => {
+    yawPointer = event.pointerId;
+    yaw.classList.add("active");
+    yaw.setPointerCapture(event.pointerId);
+    yawMove(event);
+  });
+  yaw.addEventListener("pointermove", (event) => {
+    if (event.pointerId === yawPointer) yawMove(event);
+  });
+  yaw.addEventListener("pointerup", yawRelease);
+  yaw.addEventListener("pointercancel", yawRelease);
+
+  // ── actions ──────────────────────────────────────────────
+  async function action(name) {
+    try {
+      const result = await api("/api/action", { action: name });
+      if (!result.ok) throw new Error(result.error || "refused");
+      toast({ rise: "起身中…", stop: "已停止", relax: "已放松", enable: "已使能", disable: "已停用" }[name] || name);
+    } catch (error) {
+      toast(`失败:${error.message}`);
+    }
+  }
+
+  $("btnRise").addEventListener("click", () => action("rise"));
+  $("btnStop").addEventListener("click", () => action("stop"));
+
+  // ── skills (dynamic: the set is config, not a fixed list) ─
+  const NAMES = {
+    roulade: "前滚翻", kick_left: "踢球 L", kick_right: "踢球 R",
+    ground_pick: "嘴尖触地", sit_toggle: "坐 / 站", sitstand: "坐 / 站",
+  };
+
+  async function loadSkills() {
+    const box = $("skills");
+    let payload = {};
+    try { payload = await api("/api/skills"); } catch { /* offline: leave the row empty */ }
+    const names = [
+      ...(payload.skills || []).map((entry) => entry.name),   // SkillParams.name, not .skill
+      ...(payload.built_in || []),
+    ];
+    box.innerHTML = "";
+    for (const name of names) {
+      const button = document.createElement("button");
+      button.textContent = NAMES[name] || name;
+      button.className = "ghost";
+      if (name === "sit_toggle" || name === "sitstand") button.classList.add("danger");
+      button.addEventListener("click", async () => {
+        // The only destructive-by-surprise one is relax; skills are all recoverable, but the
+        // sit toggle is the one that changes the robot's whole posture — still one tap.
+        try {
+          await api("/api/skill", { name });
+          toast(`${button.textContent} ▶`);
+        } catch (error) {
+          toast(`失败:${error.message}`);
+        }
+      });
+      box.appendChild(button);
+    }
+  }
+
+  // ── state polling ────────────────────────────────────────
+  function paint(payload) {
+    const health = payload.health || {};
+    const state = payload.state || {};
+    const dot = $("dot");
+
+    const online = Boolean(payload.health || payload.state);
+    const healthy = health.healthy !== false && online;
+    dot.className = "dot " + (!online ? "bad" : healthy ? "ok" : "warn");
+
+    if (!online) {
+      $("sub").textContent = "未连接";
+    } else {
+      const bits = [];
+      if (state.safety?.fallen) bits.push("摔倒");
+      if (state.safety?.limp) bits.push("无力矩");
+      if (health.degraded) bits.push("降级");
+      $("sub").textContent = bits.length ? bits.join(" · ") : "在线";
+    }
+
+    const policy = state.policy || "—";
+    const policyChip = $("policy");
+    policyChip.textContent = policy;
+    policyChip.className = "chip" + (policy === "walk" || policy === "stand" ? " live" : "")
+      + (state.safety?.fallen ? " danger" : "");
+
+    const hz = health.control_loop?.achieved_hz ?? state.loop?.hz;
+    $("hz").innerHTML = hz ? `<b>${hz.toFixed(1)}</b> Hz` : "— Hz";
+    $("batt").innerHTML = health.battery ? `<b>${Math.round(health.battery.percent)}</b> %` : "— %";
+    $("temp").innerHTML = health.cpu_temp_c ? `<b>${Math.round(health.cpu_temp_c)}</b> °C` : "— °C";
+  }
+
+  async function poll() {
+    try {
+      paint(await api("/api/state"));
+    } catch {
+      paint({});
+    }
+  }
+
+  // ── boot ─────────────────────────────────────────────────
+  loadSkills();
+  poll();
+  setInterval(poll, STATE_MS);
+  setInterval(loadSkills, 15000);
+})();
+</script>
+</body>
+</html>
