@@ -9,6 +9,8 @@
 [![Boards](https://img.shields.io/badge/boards-K3%20%7C%20K1-06b6d4?style=flat-square)](#status)
 [![Control loop](https://img.shields.io/badge/control%20loop-50%20Hz-22c55e?style=flat-square)](#measurements)
 
+English · [中文](README.zh.md)
+
 </div>
 
 ---

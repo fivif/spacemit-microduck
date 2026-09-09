@@ -1,9 +1,8 @@
-# K3 移植案例 —— 用 SpacemiT K3 作为机器鸭大脑
+# K3 移植记录 —— 用 SpacemiT K3 作为机器鸭大脑
 
 > **一句话**:把主仓 `microduck`(Rust 运行时)原生编译到 **SpacemiT K3(riscv64)**,
 > 加载官方 ONNX 策略驱动机器人 —— 软件层面证明"**RISC-V 换脑**"成立。
-> **实测日期 2026-09-08**;完整工程记录见
-> `Desktop\Work_World\Microduck 机器鸭 × 进迭时空 优秀案例\K3\`。
+> **实测日期 2026-09-08**;完整记录见本目录 `docs/`。
 
 ---
 
@@ -117,7 +116,7 @@ cargo build --release --exclude mediad --exclude duck-detect --exclude pet-detec
 ```bash
 # 开发机:启动本地仿真(SIT 起始)
 cd microduck_rl
-PYTHONPATH=src "<案例目录>/K3/local-sim/.venv/Scripts/python.exe" \
+PYTHONPATH=src "<repo>/k3/local-sim/.venv/Scripts/python.exe" \
     -m mjlab_microduck.sim.body_server --port 7801
 
 # 开发机:把仿真端口映射到板子
@@ -139,10 +138,10 @@ python3 /tmp/sim-drive.py --vx 0.25 --seconds 16               # 行走
 
 | 内容 | 位置 |
 |---|---|
-| 工程总目录 | `Desktop\Work_World\Microduck 机器鸭 × 进迭时空 优秀案例\` |
-| K3 版方案与实录 | 上述目录 `K3\`(docs/01–06、plans/MILESTONES.md、k3/ 脚本) |
+| 仓库根目录 |
+| K3 版方案与实录 | `k3/` |
 | 策略运行时实测 | [`POLICY-RUNTIME.md`](POLICY-RUNTIME.md)(推理耗时 / CPU 占用 / 选网逻辑) |
-| K1 版(实测进展) | [`K1-PORT.md`](K1-PORT.md) + 上述目录 `K1\` |
+| K1 版(实测进展) | [`K1-PORT.md`](K1-PORT.md) + `k1/` |
 | 芯片规格 | SpacemiT 官方产品资料 |
 | 本知识库(4 仓) | [`README.md`](../README.md) · [`RELATIONS.md`](../RELATIONS.md) |
 

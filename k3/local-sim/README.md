@@ -17,11 +17,11 @@
 ```bash
 # 1. 启动身体(带 MuJoCo 窗口;--headless 无窗口)
 cd microduck_rl
-PYTHONPATH=src "<案例目录>/local-sim/.venv/Scripts/python.exe" \
+PYTHONPATH=src "<repo>/k3/local-sim/.venv/Scripts/python.exe" \
     -m mjlab_microduck.sim.body_server --port 7801 --keyframe HOME
 
 # 2. 客户端验证(另一个终端)
-<案例目录>/local-sim/.venv/Scripts/python.exe <案例目录>/local-sim/test-client.py --steps 250
+<repo>/k3/local-sim/.venv/Scripts/python.exe <repo>/k3/local-sim/test-client.py --steps 250
 ```
 
 `--keyframe`:`SIT`(默认,折叠待命)/`HOME`(站立放置,trunk z=0.125)/`STAND`/`FOLD`。

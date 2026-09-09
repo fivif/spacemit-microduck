@@ -29,7 +29,7 @@ python3 bench_policy.py --providers          # 只看运行时版本与可用 EP
 
 ```bash
 cd <dev>/Desktop/Work_World/<tools>
-cat "<dev>/Desktop/Work_World/Microduck 机器鸭 × 进迭时空 优秀案例/K3/k3/env-init.sh" | \
+cat <repo>/k3/k3/env-init.sh | \
   ./tools/k3ssh.sh root@<board> 'cat > /tmp/env-init.sh; bash /tmp/env-init.sh'
 ```
 

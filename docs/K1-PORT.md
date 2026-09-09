@@ -147,7 +147,7 @@ K1 能跑通完整链路,但**满载时余量不足**(掉到健康门限以下)�
 
 | 内容 | 位置 |
 |---|---|
-| K1 方案 / 环境 / 构建 / R1 / 联调 | 案例目录 `K1/docs/01-05` |
-| K1 侧脚本 | 案例目录 `K1/k1/`(`run-all` / `env-init` / `build` / `probe-onnx` / `install-ort` / `sim-drive` / `k3-sim-port.patch`) |
-| K1 里程碑 + K3/K1 对照 | 案例目录 `K1/plans/MILESTONES.md` |
+| K1 方案 / 环境 / 构建 / R1 / 联调 | `K1/docs/01-05` |
+| K1 侧脚本 | `K1/k1/`(`run-all` / `env-init` / `build` / `probe-onnx` / `install-ort` / `sim-drive` / `k3-sim-port.patch`) |
+| K1 里程碑 + K3/K1 对照 | `K1/plans/MILESTONES.md` |
 | K3 侧对照 | [`K3-PORT.md`](K3-PORT.md) |

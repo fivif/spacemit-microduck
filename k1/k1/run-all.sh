@@ -78,10 +78,10 @@ cat <<'EOF'
 在 Windows 开发台(两个终端):
   # ① 本地仿真(默认 SIT 起始)
   cd microduck_rl
-  PYTHONPATH=src "<案例目录>/K3/local-sim/.venv/Scripts/python.exe" \
+  PYTHONPATH=src <repo>/k3/local-sim/.venv/Scripts/python.exe \
       -m mjlab_microduck.sim.body_server --port 7801
-  # ② 反向隧道(K1 没有公网隧道,只能在同网段直连)
-  ssh -N -R 7801:127.0.0.1:7801 root@<k1-ip> \
+  # ② 把仿真端口映射到板子
+  ssh -N -R 7801:127.0.0.1:7801 root@<board> \
       -o ServerAliveInterval=30 -o ExitOnForwardFailure=yes
 
 测量用 --headless,否则 viewer 会拖慢实时步进(见 K3-PORT.md §6.10)。
