@@ -23,14 +23,14 @@ python3 bench_policy.py --providers          # 只看运行时版本与可用 EP
 **K3 实测(2026-09-09)**:9 个策略一致 **0.201 ms** 均值,p99 ≤ 0.223 ms,占 50 Hz 预算 **1.01%**。
 完整数据与整环 CPU 占用见 [`../../docs/POLICY-RUNTIME.md`](../../docs/POLICY-RUNTIME.md)。
 
-> ⚠️ 整环 CPU 测量用 `robotctl health` 时要传 `--robot-socket`(不是 `--socket`,后者给 updaterd)。
+> 注意: 整环 CPU 测量用 `robotctl health` 时要传 `--robot-socket`(不是 `--socket`,后者给 updaterd)。
 
 ## 传递脚本到 K3 的姿势(Git Bash)
 
 ```bash
-cd /c/Users/zhuxuanjia/Desktop/Work_World/yolos-box
-cat "/c/Users/zhuxuanjia/Desktop/Work_World/Microduck 机器鸭 × 进迭时空 优秀案例/K3/k3/env-init.sh" | \
-  ./tools/k3ssh.sh root@10.5.90.195 'cat > /tmp/env-init.sh; bash /tmp/env-init.sh'
+cd <dev>/Desktop/Work_World/<tools>
+cat "<dev>/Desktop/Work_World/Microduck 机器鸭 × 进迭时空 优秀案例/K3/k3/env-init.sh" | \
+  ./tools/k3ssh.sh root@<board> 'cat > /tmp/env-init.sh; bash /tmp/env-init.sh'
 ```
 
-> SSH 细节见 yolos-box 知识库 **20 §5**(k3ssh.sh 第一参数必须是 `root@10.5.90.195` 旧 token)。
+> SSH 细节见 <tools> 知识库 **20 §5**(k3ssh.sh 第一参数必须是 `root@<board>` 旧 token)。

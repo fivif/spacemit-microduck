@@ -26,7 +26,7 @@ K3 的 Bianbu 已装 **ONNX Runtime 1.24.2+spacemit.a1 + EP 主库**,高于主�
 
 | 项 | 值 |
 |---|---|
-| 板卡 | `jax-spacemitk3picoitx`(K3 Pico-ITX)· 10.5.90.195 / `root:bianbu` |
+| 板卡 | `K3 Pico-ITX`(K3 Pico-ITX)· <board-ip> / `root` |
 | CPU | 8× X100 @2.4GHz(RVA23) |
 | OS | Bianbu 4.0.1,glibc 2.43 |
 | 工具链 | gcc/g++ 15.2、git、make 已有;`cmake` 需 apt |
@@ -66,9 +66,9 @@ cargo build --release --exclude mediad --exclude duck-detect --exclude pet-detec
 ## 5. 联调拓扑与结果
 
 ```
-┌─ K3 (riscv64) ────────────────┐        ┌─ Windows (x86_64) ─────────┐
+┌─ K3 (riscv64) ────────────────┐        ┌─ 开发机 (x86_64) ──────────┐
 │ robotd 50Hz 环 + 官方 ONNX 策略│        │ duck-body (MuJoCo) + viewer│
-│ spacemit ONNX Runtime          │◄──SSH 反向隧道──►│ 200Hz 物理/50Hz 控制│
+│ spacemit ONNX Runtime          │◄──SSH 端口转发──►│ 200Hz 物理/50Hz 控制│
 └────────────────────────────────┘        └────────────────────────────┘
      robotd --sim 127.0.0.1:7801  ←──  ssh -R 7801:127.0.0.1:7801
 ```
@@ -80,9 +80,9 @@ cargo build --release --exclude mediad --exclude duck-detect --exclude pet-detec
 | 起身(sitstand) | z 0.065 → 0.116 |
 | 站立 | **7 s 稳定**,gz = −1.000 |
 | 行走(vx=0.25 命令) | 15 s 走 **1.45 m**(实测 0.097 m/s),未摔倒 |
-| 环率 | **46–48 of 50 Hz**(隧道下,健康门限 45) |
+| 环率 | **46-48 of 50 Hz**(健康门限 45) |
 | Web 控制台 | K3 上 `:8081` 单页控制台,摇杆/坐站/技能全部走通 |
-| 速度跟踪 | ⚠️ 命令 0.25 m/s,实测 **0.097 m/s(39%)** —— sim-to-sim gap,见 §6.6 |
+| 速度跟踪 | 注意: 命令 0.25 m/s,实测 **0.097 m/s(39%)** —— sim-to-sim gap,见 §6.6 |
 
 > **推理开销实测**(2026-09-09,`--fake` 无仿真):单次 ONNX 推理 **0.201 ms**(占 50 Hz 预算 1.01%),
 > 整环 CPU **约 1.2% 单核**,0 missed ticks。详见 [`POLICY-RUNTIME.md`](POLICY-RUNTIME.md)。
@@ -102,9 +102,9 @@ cargo build --release --exclude mediad --exclude duck-detect --exclude pet-detec
 6. **速度跟踪只有 ~39%**(0.097 vs 0.25 m/s)—— `duck-body` 的 `scene.xml` 是简单位置执行器,
    策略是在 **BAM 摩擦/电压模型**下训练的(sim-to-sim gap);站立/平衡不受影响。
    要速度保真请用 `microduck_rl/scripts/infer_policy.py`(BAM M6)。
-7. **SSH 反向隧道是免防火墙的关键** —— Windows 入站 7801 被拦且加规则需管理员;
-   `ssh -R 7801:127.0.0.1:7801` 把本机端口映射到 K3 的 localhost,robotd 用默认地址即可。
-   隧道下 RTT p50 3 ms / max 10 ms。
+7. **仿真在开发机上,机器人运行时在板子上** —— 用 `ssh -R 7801:127.0.0.1:7801`
+   把开发机的仿真端口映射到板子的 localhost,`robotd --sim 127.0.0.1:7801` 用默认地址即可。
+   实测 RTT p50 3 ms / max 10 ms。
 8. **`pkill -f <模式>` 会匹配到执行它的远程 shell 自身** —— 用正则括号规避(`[s]erver\.py`)。
 9. **`robot.state` 是订阅通知,不是可调方法** —— 直接调用返回 `unknown method`;
    必须 `robot.subscribe {hz:10}` 后另开连接收通知。
@@ -115,14 +115,14 @@ cargo build --release --exclude mediad --exclude duck-detect --exclude pet-detec
 ## 7. 复现命令
 
 ```bash
-# Windows:启动本地仿真(SIT 起始,设计路径)
+# 开发机:启动本地仿真(SIT 起始)
 cd microduck_rl
 PYTHONPATH=src "<案例目录>/K3/local-sim/.venv/Scripts/python.exe" \
     -m mjlab_microduck.sim.body_server --port 7801
 
-# Windows:反向隧道
-cd yolos-box
-K3_SSH_HOST="root@10.5.90.195 -p 22" ./tools/k3ssh.sh root@10.5.90.195 \
+# 开发机:把仿真端口映射到板子
+cd <tools>
+K3_SSH_HOST="root@<board> -p 22" ./tools/k3ssh.sh root@<board> \
     -N -R 7801:127.0.0.1:7801 -o ServerAliveInterval=30 -o ExitOnForwardFailure=yes
 
 # K3
@@ -143,7 +143,7 @@ python3 /tmp/sim-drive.py --vx 0.25 --seconds 16               # 行走
 | K3 版方案与实录 | 上述目录 `K3\`(docs/01–06、plans/MILESTONES.md、k3/ 脚本) |
 | 策略运行时实测 | [`POLICY-RUNTIME.md`](POLICY-RUNTIME.md)(推理耗时 / CPU 占用 / 选网逻辑) |
 | K1 版(实测进展) | [`K1-PORT.md`](K1-PORT.md) + 上述目录 `K1\` |
-| 芯片官方资料 | yolos-box 知识库 **21**(K1/K3 规格与产品线) |
+| 芯片规格 | SpacemiT 官方产品资料 |
 | 本知识库(4 仓) | [`README.md`](../README.md) · [`RELATIONS.md`](../RELATIONS.md) |
 
 ---
@@ -158,7 +158,7 @@ K1(8×X60 @1.8GHz、2 TOPS CPU 融合、MUSE-Pi-Pro 板卡形态)**代码零改�
 | 空载环率 | **50.0 of 50 Hz · 0 missed** | 49.0 Hz · 0 missed |
 | 行走 | **1.245 m** | 1.145 m |
 | CPU 温度 | **50 °C** | 64 °C |
-| ⚠️ 满载最低 | **40.7 Hz**(<45 门限) | 未低于 45 |
+| 注意: 满载最低 | **40.7 Hz**(<45 门限) | 未低于 45 |
 
 途中解掉的一个真问题:K1 的 apt 只提供 `libonnxruntime.so.1.18.1`(低于地板 1.23),
 但 **`python3-spacemit-ort` 包里自带 1.24.0** —— 用 `ORT_DYLIB_PATH` 指过去即可,无需跨机搬运。

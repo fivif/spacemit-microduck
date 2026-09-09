@@ -59,7 +59,7 @@ for sym in GLIBC GLIBCXX CXXABI; do
         # 粗略比较:版本串按段比大小
         if [ -n "$have" ]; then
             higher=$(printf '%s\n%s\n' "${need#*_}" "$have" | sort -V | tail -1)
-            if [ "$higher" = "$have" ]; then echo "本机 $have ✓"; else echo "本机 $have ✗"; fi
+            if [ "$higher" = "$have" ]; then echo "本机 $have "; else echo "本机 $have ✗"; fi
         else
             echo "本机未知 ?"
         fi
@@ -117,7 +117,7 @@ for c in "${candidates[@]}"; do
     rc=$?
     if [ $rc -eq 0 ]; then
         v=$(echo "$out" | grep '^ORT_VERSION=' | cut -d= -f2)
-        echo "✓ 可加载 · 版本 $v · API v23 可用"
+        echo " 可加载 · 版本 $v · API v23 可用"
         verdict=0
         FOUND="$c"
     else
@@ -142,7 +142,7 @@ x = np.zeros((1, 61), dtype=np.float32)
 y = s.run(None, {i.name: x})[0]
 print(f"  input  {i.name} {i.shape}")
 print(f"  output {o.name} {y.shape}  首 4 值 {np.round(y.ravel()[:4], 4)}")
-print("  ✓ 推理通过" if y.shape[-1] == 14 else f"  ✗ 输出维度 {y.shape[-1]} != 14")
+print("   推理通过" if y.shape[-1] == 14 else f"  ✗ 输出维度 {y.shape[-1]} != 14")
 PY
     else
         echo "  (跳过:没有 python3 onnxruntime —— apt install python3-spacemit-ort)"
@@ -153,14 +153,14 @@ fi
 # ---- 结论 ----
 echo "=== 结论 ==="
 if [ $verdict -eq 0 ]; then
-    echo "✓ 有可用的 ONNX Runtime(API v23 / >= $FLOOR_TEXT):$FOUND"
+    echo " 有可用的 ONNX Runtime(API v23 / >= $FLOOR_TEXT):$FOUND"
     echo "  设 ORT_DYLIB_PATH=$FOUND 后,robotd 即可加载策略(无需重编译)。"
     exit 0
 else
     echo "✗ 没有满足地板 $FLOOR_TEXT 的 ONNX Runtime —— R1 成立,robotd 会在 setup_api 里 panic。"
     echo "  对策(按优先级,见 docs/04 §2):"
     echo "    1) 从 K3 搬 1.24.2:本机跑 fetch-ort-from-k3.sh,再 scp 到 K1 后跑 install-ort-k1.sh"
-    echo "    2) 在 K1 的 apt 源里找更新的包:apt-cache search spacemit | grep -i onnx"
+    echo "    2) 在板上查找其它已安装的 ONNX Runtime:find / -name 'libonnxruntime.so*'"
     echo "    3) 自己编 ONNX Runtime(riscv64,慢)"
     exit 1
 fi

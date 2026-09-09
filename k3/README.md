@@ -3,7 +3,7 @@
 > 上级目录: [`../README.md`](../README.md)(案例总入口)· 对外策划稿:[`../Microduck 机器鸭 × 进迭时空 优秀案例策划.md`](../Microduck%20机器鸭%20×%20进迭时空%20优秀案例策划.md)
 >
 > **日期**: 2026-09-08 · **立项**: Microduck 软件栈 × SpacemiT K3(第一站)/ K1(后续)
-> **K3**: `jax-spacemitk3picoitx` · 10.5.90.195 / root:bianbu(yolos-box 同款机)
+> **K3**: `K3 Pico-ITX` · <board-ip> / root(<tools> 同款机)
 > **K1**: 后续目标,K3 方案平移(见 [`docs/04`](docs/04-K1版前瞻.md) 与 [`../K1/README.md`](../K1/README.md))
 >
 > **一句话目标(2026-09-08 方向定稿)**: **用 SpacemiT K3 作为 Microduck 机器鸭的大脑**
@@ -29,12 +29,12 @@
 
 | 项 | 现状脑 | K3(目标脑) | 结论 |
 |---|---|---|---|
-| CPU | 4 核 @1.8GHz(原平台) | 8×X100 @2.4GHz(单核 SPECint 9.5 ≈ A76) | ✅ 约 2-4× 富余 |
-| OS | Armbian(Trixie, glibc ≥2.31) | Bianbu 4.0.1(glibc 2.43) | ✅ 同代 systemd |
-| ONNX Runtime | 地板 1.23 | **1.24.2+spacemit.a1 + EP 主库(已装)** | ✅✅ 超地板 |
-| Media/NPU 加速 | 原平台专属(rknn + mpp h264 + webrtcsink) | 无对应(无摄像头;EP 是推理 EP) | ❌ **需裁剪** |
-| 舵机总线 | /dev/ttyS2(1Mbps UART) | K3 有 15×UART | ✅ 可接,板级待验 |
-| 供电/尺寸 | 原核心板 ~4×2cm | K3 Pico-ITX 2.5" | ⚠️ 真机集成需评估(见 01) |
+| CPU | 4 核 @1.8GHz(原平台) | 8×X100 @2.4GHz(单核 SPECint 9.5 ≈ A76) |  约 2-4× 富余 |
+| OS | Armbian(Trixie, glibc ≥2.31) | Bianbu 4.0.1(glibc 2.43) |  同代 systemd |
+| ONNX Runtime | 地板 1.23 | **1.24.2+spacemit.a1 + EP 主库(已装)** |  超地板 |
+| Media/NPU 加速 | 原平台专属(rknn + mpp h264 + webrtcsink) | 无对应(无摄像头;EP 是推理 EP) |  **需裁剪** |
+| 舵机总线 | /dev/ttyS2(1Mbps UART) | K3 有 15×UART |  可接,板级待验 |
+| 供电/尺寸 | 原核心板 ~4×2cm | K3 Pico-ITX 2.5" | 注意: 真机集成需评估(见 01) |
 
 ## 目录
 
@@ -44,15 +44,15 @@ K3/                          ← 本目录(案例的 K3 版本)
 ├── docs/
 │   ├── 01-总体架构.md          K3 版运行时栈分层 + 组件保留/裁剪/替换矩阵
 │   ├── 02-构建移植方案.md      工具链/依赖审计/ONNX 对接/UART 电气/系统服务
-│   ├── 03-K3环境实测.md        ★2026-09-08 SSH 实测实录
+│   ├── 03-K3环境实测.md        2026-09-08 SSH 实测实录
 │   ├── 04-K1版前瞻.md          K1 差异 + 平移策略(已展开为 ../K1/)
-│   ├── 05-仿真客户端移植.md    ★v0.11.0 缺 `--sim`;从上游 sim-remote-io 分支移植(4 文件)
-│   └── 06-P1联调实录.md        ★★K3 大脑驱动 MuJoCo 鸭:起身→站立→行走 1.45 m 实录
+│   ├── 05-仿真客户端移植.md    v0.11.0 缺 `--sim`;从上游 sim-remote-io 分支移植(4 文件)
+│   └── 06-P1联调实录.md        K3 大脑驱动 MuJoCo 鸭:起身→站立→行走 1.45 m 实录
 ├── plans/
-│   └── MILESTONES.md           P0 ✅ → P1 核心 ✅ → P2 真机 → P3 K1
+│   └── MILESTONES.md           P0  → P1 核心  → P2 真机 → P3 K1
 ├── policies/                   官方策略集(9 ONNX + manifest,HF 经 10808 代理下载)
 ├── local-sim/                  本地(x86)仿真:duck-body + 观测/测试脚本 + 反向隧道说明
-├── web/                        ★Web 控制台(iOS 26 液态玻璃风):http://10.5.90.195:8081/
+├── web/                        Web 控制台(iOS 26 液态玻璃风):http://<board-ip>:8081/
 └── k3/
     ├── env-init.sh             K3 环境初始化(rustup/克隆)
     ├── build-k3.sh             裁剪构建(--exclude 列表)
@@ -64,7 +64,7 @@ K3/                          ← 本目录(案例的 K3 版本)
 
 | 里程碑 | 验收标准 | 状态 |
 |---|---|---|
-| **P0 核心闭环** | K3 上编译出 robotd;`ort` 吃上 spacemit ONNX Runtime | ✅ **2026-09-08 完成**(6m42s 构建全绿) |
-| **P1 策略链** | 官方策略驱动仿真鸭:起身/站立/行走 | ✅ **核心完成**:SIT 起身 → 站立 7s → 行走 1.45m 未摔(见 `docs/06`) |
+| **P0 核心闭环** | K3 上编译出 robotd;`ort` 吃上 spacemit ONNX Runtime |  **2026-09-08 完成**(6m42s 构建全绿) |
+| **P1 策略链** | 官方策略驱动仿真鸭:起身/站立/行走 |  **核心完成**:SIT 起身 → 站立 7s → 行走 1.45m 未摔(见 `docs/06`) |
 | **P2 真机替换** | 裁剪版 robotd 在 K3 驱动 XL330 总线 | 需硬件 |
 | **P3 K1 平移** | K1 板(CPU-only ORT)跑通 P0 | 后续,见 [`../K1/README.md`](../K1/README.md) |

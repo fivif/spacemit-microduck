@@ -30,10 +30,10 @@ PYTHONPATH=src "<案例目录>/local-sim/.venv/Scripts/python.exe" \
 
 | 项 | 结果 |
 |---|---|
-| 协议握手 | `{"op":"hello","protocol":1}` → `{"protocol":1}` ✓ |
-| 关节数(线上) | **15**(含 mouth;daemon 的 JOINT_NAMES)✓ |
-| 控制频率 | 250 tick / 5.00 s = **50.0 Hz**,最差迟到 0.0 ms ✓ |
-| 传感器 | trunk_z / imu.gravity(投影重力)/ quat / gyro / currents_ma 全部可读 ✓ |
+| 协议握手 | `{"op":"hello","protocol":1}` → `{"protocol":1}`  |
+| 关节数(线上) | **15**(含 mouth;daemon 的 JOINT_NAMES) |
+| 控制频率 | 250 tick / 5.00 s = **50.0 Hz**,最差迟到 0.0 ms  |
+| 传感器 | trunk_z / imu.gravity(投影重力)/ quat / gyro / currents_ma 全部可读  |
 | 从 SIT 线性 ramp 起立 | **会摔倒**(见下) |
 | 保持 HOME 静态姿势 | **会摔倒**(设计如此,见下) |
 
@@ -53,18 +53,18 @@ PYTHONPATH=src "<案例目录>/local-sim/.venv/Scripts/python.exe" \
 
 > 这三条决定了"本地仿真"的正确用法:**要么只看被冻结的放置姿态,要么必须让策略/robotd 接管。**
 
-## K3 ↔ 本地仿真(反向隧道,免防火墙)
+## K3 ↔ 本地仿真(SSH 端口转发)
 
-Windows 防火墙默认拦截入站 7801(加规则需管理员,实测 `Access is denied`)。用 SSH 反向隧道绕开:
+开发机的仿真端口通过 SSH 转发到板子的 localhost:
 
 ```bash
 # 在 Windows(Git Bash),把本机 7801 映射到 K3 的 localhost:7801
-cd .../yolos-box
-K3_SSH_HOST="root@10.5.90.195 -p 22" ./tools/k3ssh.sh root@10.5.90.195 \
+cd .../<tools>
+K3_SSH_HOST="root@<board> -p 22" ./tools/k3ssh.sh root@<board> \
     -N -R 7801:127.0.0.1:7801 -o ServerAliveInterval=30 -o ExitOnForwardFailure=yes
 ```
 
-K3 侧验证(已实测 ✓):
+K3 侧验证(已实测 ):
 ```bash
 python3 -c "import socket,json; s=socket.create_connection(('127.0.0.1',7801)); ..."
 # → hello {'protocol': 1} / trunk_z=0.1250 / joints=15 / gz=-1.000

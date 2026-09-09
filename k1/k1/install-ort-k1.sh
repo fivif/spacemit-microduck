@@ -69,5 +69,5 @@ PY
 }
 
 echo
-echo "✓ 完成。robotd 现在会从 $DEST/libonnxruntime.so 加载策略。"
+echo " 完成。robotd 现在会从 $DEST/libonnxruntime.so 加载策略。"
 echo "  手动跑:export ORT_DYLIB_PATH=$DEST/libonnxruntime.so && ./target/release/robotd --sim 127.0.0.1:7801"

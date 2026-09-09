@@ -34,9 +34,9 @@ K1 的 apt 只有 `libonnxruntime.so.1.18.1`,**低于主仓地板 1.23** → `or
 
 | K3 的 ORT 要求 | K1 实测 |
 |---|---|
-| `GLIBC_2.38` | glibc **2.39** ✅ |
-| `GLIBCXX_3.4.30` | gcc 13.2 → **3.4.32** ✅ |
-| `ELF 64-bit UCB RISC-V, RVC, double-float` | 同架构 ✅ |
+| `GLIBC_2.38` | glibc **2.39**  |
+| `GLIBCXX_3.4.30` | gcc 13.2 → **3.4.32**  |
+| `ELF 64-bit UCB RISC-V, RVC, double-float` | 同架构  |
 
 所以**直接搬**即可:
 
@@ -57,10 +57,10 @@ bash probe-onnx.sh /opt/microduck-k1/ort/libonnxruntime.so
 
 ## 传递脚本到 K1(Git Bash)
 
-K1 **没有** yolos-box 那套公网隧道,只能在同网段用 `ssh`/`scp` 直连:
+脚本通过 `ssh`/`scp` 直连板子传递:
 
 ```bash
-ASKPASS="$(mktemp)"; printf '#!/bin/sh\necho "bianbu"\n' > "$ASKPASS"; chmod +x "$ASKPASS"
+ASKPASS="$(mktemp)"; printf '#!/bin/sh\necho "<password>"\n' > "$ASKPASS"; chmod +x "$ASKPASS"
 export SSH_ASKPASS="$ASKPASS" SSH_ASKPASS_REQUIRE=force DISPLAY=:0
 K1=root@<k1-ip>
 
@@ -72,6 +72,5 @@ done
 ssh -o PreferredAuthentications=password -o PubkeyAuthentication=no "$K1" 'bash /tmp/run-all.sh'
 ```
 
-> ⚠️ K1 上 **`github.com` 不可达**(实测 000),`git clone` 必失败 —— 源码一律从本机打包传过去,
-> 见 [`../docs/03-源码获取与构建.md`](../docs/03-源码获取与构建.md) §2。
-> ⚠️ `fetch-ort-from-k3.sh` 要在**本机**跑(它用 yolos-box 的 `k3ssh.sh`/`k3scp.sh` 走公网隧道)。
+> 源码部署见 [`../docs/03-源码获取与构建.md`](../docs/03-源码获取与构建.md)。
+> 注意: `fetch-ort-from-k3.sh` 要在**本机**跑(它用 <tools> 的 `k3ssh.sh`/`k3scp.sh` 走公网隧道)。

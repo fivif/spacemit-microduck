@@ -10,9 +10,9 @@
 # 之后:scp -r ort-k1 root@<k1-ip>:/tmp/ && 在 K1 上跑 install-ort-k1.sh
 set -euo pipefail
 
-K3_HOST="${K3_SSH_HOST:-root@10.5.90.195}"     # k3ssh.sh 会把旧 LAN token 改写成公网隧道
+K3_HOST="${K3_SSH_HOST:-root@<board>}"     # k3ssh.sh 会把旧 LAN token 改写成公网隧道
 OUT="$(cd "$(dirname "$0")" && pwd)/ort-k1"
-YOLOS="/c/Users/zhuxuanjia/Desktop/Work_World/yolos-box"
+YOLOS="<dev>/Desktop/Work_World/<tools>"
 
 mkdir -p "$OUT"
 
@@ -55,5 +55,5 @@ echo "[3/3] 留档…"
 } | tee "$OUT/MANIFEST.txt"
 
 echo
-echo "✓ 完成 → $OUT"
+echo " 完成 → $OUT"
 echo "  下一步:scp -r \"$OUT\" root@<k1-ip>:/tmp/"

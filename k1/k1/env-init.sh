@@ -1,8 +1,8 @@
 #!/bin/bash
 # K1 一次性环境初始化:apt 依赖 + rustup + 主仓源码就位
 #
-# 在 K1(root@<k1-ip>,密码 bianbu)上执行。
-# 与 K3 版的差异:① 路径 /opt/microduck-k1;② K1 的 github.com 不可达,源码需从本机 scp 上来;
+# 在 K1 上以 root 执行。
+# 与 K3 版的差异:① 路径 /opt/microduck-k1;② 源码从开发机传上来(见 docs/03);
 # ③ K1 缺 cmake/libudev-dev/pkg-config,一并装上。
 set -euo pipefail
 
@@ -29,9 +29,7 @@ echo "[3/5] 源码就位…"
 mkdir -p /opt/microduck-k1
 cd /opt/microduck-k1
 if [ ! -d microduck ]; then
-  # K1 上 github.com 不可达(git clone 必失败),两条路:
-  #   A) 本机 tar 打包后 scp 过来(推荐,见 docs/03 §2)
-  #   B) 用 codeload 下 tarball(只含 main,拿不到 k3-sim-port 改动,还需另打补丁)
+  # 源码从开发机打包传上来(见 docs/03 §1)
   if [ -f microduck-k1-full.tar.gz ]; then
     tar xzf microduck-k1-full.tar.gz && rm -f microduck-k1-full.tar.gz
   elif [ -f /tmp/microduck-k1-full.tar.gz ]; then

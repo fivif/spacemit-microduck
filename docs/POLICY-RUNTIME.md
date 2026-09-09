@@ -13,7 +13,7 @@
 control 线程(50 Hz)
   └─ Safety<RemoteIo/DynamixelIo>.read()        取传感器
   └─ Observation::build(...)                    拼 61 维观测
-  └─ Policy::infer(&obs, net)                   ★ 一次 ONNX 推理
+  └─ Policy::infer(&obs, net)                    一次 ONNX 推理
   │    └─ ort::Session::run(inputs!["obs" => [1,61]]) → [1,14]
   └─ 动作 → 关节目标 → Safety.write()            下发
 ```
@@ -79,7 +79,7 @@ control 线程(50 Hz)
 - 推理只占其中一部分（50 Hz × 0.2 ms = **1%**），其余是观测拼装、安全层、IPC。
 - **0 missed ticks**，全程 48–49 of 50 Hz。
 
-> ⚠️ 测量环境不是空载：K3 上 `bianbu-update-backend` 等占 ~30%，
+> 注意: 测量环境不是空载：K3 上 `系统服务` 等占 ~30%，
 > `load average ≈ 2.2`。因此这是**偏保守**的数字。
 
 ---
