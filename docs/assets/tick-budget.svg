@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 260" width="860" height="260" role="img" aria-label="A 20 millisecond control tick: policy inference takes 0.201 ms, about one percent of the budget.">
+  <rect x="0" y="0" width="860" height="260" rx="14" fill="#0f172a"/>
+  <rect x="0.5" y="0.5" width="859" height="259" rx="14" fill="none" stroke="#1e293b"/>
+
+  <text x="34" y="42" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="17" font-weight="600" fill="#e2e8f0">One tick, 20 ms</text>
+  <text x="34" y="64" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="12.5" fill="#94a3b8">Inference is not the constraint. Everything else in the loop fits in the rest.</text>
+
+  <!-- the tick bar -->
+  <rect x="34" y="100" width="792" height="52" rx="8" fill="#16283f" stroke="#2b4a6f"/>
+
+  <!-- inference sliver: 0.201/20 = 1.005% of 792 = 7.96 px -->
+  <rect x="34" y="100" width="8" height="52" rx="8" fill="#38bdf8"/>
+  <rect x="38" y="100" width="4" height="52" fill="#38bdf8"/>
+
+  <line x1="42" y1="86" x2="42" y2="166" stroke="#7dd3fc" stroke-width="1" stroke-dasharray="3 3"/>
+  <text x="42" y="80" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11.5" fill="#7dd3fc">0.201 ms</text>
+  <text x="60" y="80" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11.5" fill="#94a3b8">policy inference — 1.01% of the budget</text>
+
+  <text x="430" y="132" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13" font-weight="600" fill="#e2e8f0">19.8 ms of headroom</text>
+  <text x="430" y="150" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#64748b">sensor read · observation build · safety · bus write</text>
+
+  <!-- numbers -->
+  <g font-family="ui-sans-serif,system-ui,sans-serif">
+    <text x="34" y="200" font-size="11.5" fill="#94a3b8">Whole control thread</text>
+    <text x="34" y="224" font-size="22" font-weight="600" fill="#e2e8f0">1.2%</text>
+    <text x="90" y="224" font-size="11.5" fill="#64748b">of one core</text>
+
+    <text x="300" y="200" font-size="11.5" fill="#94a3b8">Loop rate, idle</text>
+    <text x="300" y="224" font-size="22" font-weight="600" fill="#e2e8f0">50.0</text>
+    <text x="356" y="224" font-size="11.5" fill="#64748b">of 50 Hz, 0 missed</text>
+
+    <text x="600" y="200" font-size="11.5" fill="#94a3b8">Loop rate, fully loaded</text>
+    <text x="600" y="224" font-size="22" font-weight="600" fill="#fbbf24">40.7</text>
+    <text x="656" y="224" font-size="11.5" fill="#64748b">Hz — below the 45 Hz floor</text>
+  </g>
+</svg>

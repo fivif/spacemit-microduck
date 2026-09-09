@@ -1,11 +1,24 @@
+<div align="center">
+
 # spacemit-microduck
 
-Running Microduck's robot runtime natively on SpacemiT RISC-V (K3 / K1).
+**Running Microduck's robot runtime natively on SpacemiT RISC-V.**
+
+[![License](https://img.shields.io/badge/license-Apache--2.0-3b82f6?style=flat-square)](microduck/LICENSE)
+[![Platform](https://img.shields.io/badge/platform-riscv64-8b5cf6?style=flat-square)](#status)
+[![Boards](https://img.shields.io/badge/boards-K3%20%7C%20K1-06b6d4?style=flat-square)](#status)
+[![Control loop](https://img.shields.io/badge/control%20loop-50%20Hz-22c55e?style=flat-square)](#measurements)
+
+</div>
+
+---
 
 Microduck is a 25 cm bipedal robot driven by reinforcement-learning policies. Its runtime is a
 Rust workspace: a 50 Hz control loop, an ONNX policy executor, a servo bus, and the surrounding
 daemons. This repository ports that runtime to SpacemiT RISC-V SoCs and drives a robot with it,
 keeping the training and simulation chain on x86/GPU as before.
+
+![Architecture: the board runs the runtime, the development host runs the simulator](docs/assets/architecture.svg)
 
 ## Status
 
@@ -19,9 +32,14 @@ keeping the training and simulation chain on x86/GPU as before.
 Both boards build the runtime natively, load the nine shipped ONNX policies, and drive a duck in
 MuJoCo through sit-to-stand, walking, and turning without falling.
 
+![K1 against K3](docs/assets/board-comparison.svg)
+
 ## Measurements
 
-### K3
+![One tick of the control loop](docs/assets/tick-budget.svg)
+
+<details>
+<summary>K3 — full record</summary>
 
 | Metric | Value |
 |---|---|
@@ -33,7 +51,10 @@ MuJoCo through sit-to-stand, walking, and turning without falling.
 | Whole-loop CPU | about 1.2% of one core |
 | Velocity tracking | 0.097 m/s against a 0.25 m/s command (sim-to-sim gap) |
 
-### K1
+</details>
+
+<details>
+<summary>K1 — full record</summary>
 
 | Metric | Value |
 |---|---|
@@ -44,8 +65,25 @@ MuJoCo through sit-to-stand, walking, and turning without falling.
 | Control loop (fully loaded) | 40.7 Hz — below the 45 Hz health floor |
 | CPU temperature | 50 C |
 
+</details>
+
 The full records, including reproduction commands and the traps each one cost, are in
 [`docs/`](docs).
+
+## Driving it from a browser
+
+The same console runs on the board and drives the duck over the daemon's IPC — a joystick,
+the one-shot skills, and live posture and health. It holds no robot state of its own: the drive
+stream is forwarded at 20 Hz and stops on its own if the browser goes away.
+
+<div align="center">
+  <img src="k3/web/ui-desktop.png" width="46%" alt="Console, desktop layout">
+  <img src="k3/web/ui-phone.png" width="26%" alt="Console, phone layout">
+</div>
+
+## Where the policies come from
+
+![Pipeline: train, export, publish, load, verify](docs/assets/pipeline.svg)
 
 ## Repository layout
 

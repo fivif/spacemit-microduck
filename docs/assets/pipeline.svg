@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 220" width="860" height="220" role="img" aria-label="Pipeline: train in microduck_rl, export ONNX, publish a policy bundle, load it with robotd on the RISC-V board, verify in simulation.">
+  <defs>
+    <marker id="pipe" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="860" height="220" rx="14" fill="#0f172a"/>
+  <rect x="0.5" y="0.5" width="859" height="219" rx="14" fill="none" stroke="#1e293b"/>
+
+  <text x="34" y="40" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="16" font-weight="600" fill="#e2e8f0">Where the policies come from</text>
+  <text x="34" y="60" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="12" fill="#94a3b8">Training stays on x86/GPU. Only the exported graph reaches the board.</text>
+
+  <!-- five steps -->
+  <g font-family="ui-sans-serif,system-ui,sans-serif">
+    <rect x="34" y="88" width="140" height="66" rx="9" fill="#1b1533" stroke="#4c3d80"/>
+    <text x="48" y="112" font-size="12.5" font-weight="600" fill="#e2e8f0">train</text>
+    <text x="48" y="130" font-size="10.5" fill="#94a3b8">microduck_rl</text>
+    <text x="48" y="144" font-size="10.5" fill="#94a3b8">PPO · 4096 envs</text>
+
+    <rect x="196" y="88" width="140" height="66" rx="9" fill="#1b1533" stroke="#4c3d80"/>
+    <text x="210" y="112" font-size="12.5" font-weight="600" fill="#e2e8f0">export</text>
+    <text x="210" y="130" font-size="10.5" fill="#94a3b8">ONNX graph</text>
+    <text x="210" y="144" font-size="10.5" fill="#94a3b8">normaliser baked in</text>
+
+    <rect x="358" y="88" width="140" height="66" rx="9" fill="#1b1533" stroke="#4c3d80"/>
+    <text x="372" y="112" font-size="12.5" font-weight="600" fill="#e2e8f0">publish</text>
+    <text x="372" y="130" font-size="10.5" fill="#94a3b8">policy + manifest</text>
+    <text x="372" y="144" font-size="10.5" fill="#94a3b8">schema 2</text>
+
+    <rect x="520" y="88" width="140" height="66" rx="9" fill="#111f36" stroke="#2b4a6f"/>
+    <text x="534" y="112" font-size="12.5" font-weight="600" fill="#e2e8f0">load</text>
+    <text x="534" y="130" font-size="10.5" fill="#94a3b8">robotd · riscv64</text>
+    <text x="534" y="144" font-size="10.5" fill="#94a3b8">ONNX Runtime, CPU EP</text>
+
+    <rect x="682" y="88" width="144" height="66" rx="9" fill="#111f36" stroke="#2b4a6f"/>
+    <text x="696" y="112" font-size="12.5" font-weight="600" fill="#e2e8f0">verify</text>
+    <text x="696" y="130" font-size="10.5" fill="#94a3b8">MuJoCo twin</text>
+    <text x="696" y="144" font-size="10.5" fill="#94a3b8">then the real servos</text>
+  </g>
+
+  <line x1="174" y1="121" x2="194" y2="121" stroke="#475569" stroke-width="1.4" marker-end="url(#pipe)"/>
+  <line x1="336" y1="121" x2="356" y2="121" stroke="#475569" stroke-width="1.4" marker-end="url(#pipe)"/>
+  <line x1="498" y1="121" x2="518" y2="121" stroke="#475569" stroke-width="1.4" marker-end="url(#pipe)"/>
+  <line x1="660" y1="121" x2="680" y2="121" stroke="#475569" stroke-width="1.4" marker-end="url(#pipe)"/>
+
+  <!-- shared contract strip -->
+  <rect x="34" y="172" width="792" height="30" rx="7" fill="#16283f" stroke="#2b4a6f"/>
+  <text x="48" y="192" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" fill="#7dd3fc">61-dim observation</text>
+  <text x="182" y="192" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#64748b">+</text>
+  <text x="196" y="192" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" fill="#c4b5fd">14 actions</text>
+  <text x="286" y="192" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#64748b">+</text>
+  <text x="300" y="192" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" fill="#7dd3fc">50 Hz</text>
+  <text x="360" y="192" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#94a3b8">— the contract every policy shares, so the runtime can swap networks without changing the robot.</text>
+</svg>
