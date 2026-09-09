@@ -1,6 +1,6 @@
 # K1 换脑实录 —— MUSE-Pi-Pro 上的移植进展
 
-> **一句话**:把 K3 已跑通的换脑方案平移到 **SpacemiT K1(MUSE-Pi-Pro)**。
+> **一句话**:把 K3 已跑通的换脑方案平移到 **SpacemiT K1(MUSE-Pi-Pro)**,并**已跑通**。
 > **代码零改动**,但实测发现 **ONNX Runtime 版本低于主仓地板**(K3 没有的问题)。
 > **实测日期 2026-09-08**;工程记录见
 > `Desktop\Work_World\Microduck 机器鸭 × 进迭时空 优秀案例\K1\`。
@@ -32,7 +32,7 @@
 | AI | 60 TOPS(8×A100 + spacemit EP) | **2 TOPS**(CPU `_ime` 融合) | 策略 MLP 不吃亏,两边都走 CPU |
 | 内存 | 8 GiB | **3.8 GiB** | 裁剪构建够用 |
 | 实时核 RCPU | ✅ 600 MHz(直挂 CAN-FD/TSN) | ❌ 无 | P2 真机总线抖动需实测 |
-| **ONNX Runtime** | ✅ 预装 **1.24.2+spacemit.a1** | ❌ apt 只有 **1.18.1** | ⚠️ **R1 爆发点** |
+| **ONNX Runtime** | ✅ 预装 **1.24.2+spacemit.a1** | ⚠️ apt 只有 **1.18.1**,但 **python3-spacemit-ort 自带 1.24.0** ✅ | R1 已解 |
 
 **为什么"代码零改动"成立**:策略是 512-256-128 的 MLP(61 维入 / 14 维出 / 50 Hz),
 计算量极小;K1 与 K3 的差异全在**运行性能**,不在**编译路径** —— 同一个 `riscv64gc` target。
@@ -83,43 +83,76 @@
 
 **为什么 K3 没这个问题**:K3 的 Bianbu 4.0.1 预装 1.24.2+spacemit.a1,≥ 地板,dlopen 即用。
 
-### 对策(按优先级)
+### ✅ 已解决(2026-09-09,K1 实测)—— 解法就在板子上
 
-| # | 方案 | 代价 |
-|---|---|---|
-| **1** | **从 K3 搬 `libonnxruntime.so.1.24.2+spacemit.a1`** | 低 —— ★ 首选 |
-| 2 | 在 K1 apt 源里找更新的包(包名 `spacemit-onnxruntime`,K1 装到的叫 `onnxruntime`) | 低 |
-| 3 | 自己编译 ONNX Runtime(riscv64) | 高 |
-| 4 | 官方 riscv64 预编译包 | 中 |
-| 5 | 降 `ort` 绑定版本(动"代码零改动"前提) | 中 |
+K1 已装的 **`python3-spacemit-ort`** 包内自带一个更新的 ORT:
 
-**方案 1 的可行性已核对**(K3 上 `readelf` 实测,K1 侧比对):
+```
+/usr/lib/python3.12/dist-packages/onnxruntime/capi/
+└── libonnxruntime.so.1.24.0+spacemit.a3     26.7 MB
+```
 
-| K3 的 ORT 需求 | K1 实测 | |
-|---|---|---|
-| `GLIBC_2.38`(最高) | glibc **2.39** | ✅ |
-| `GLIBCXX_3.4.30`(最高) | gcc 13.2 → **3.4.32** | ✅ |
-| `ELF 64-bit UCB RISC-V, RVC, double-float` | 同架构/同 ABI | ✅ |
+| 检查项 | 结果 |
+|---|---|
+| 版本 | **1.24.0+spacemit.a3** ≥ 地板 1.23 ✅ |
+| API v23(`probe-onnx.sh` dlopen + `GetApi(23)`) | ✅ **可用** |
+| `GLIBC_2.38` / `GLIBCXX_3.4.30` / `CXXABI_1.3.15` | K1 有 2.39 / 3.4.33 / 1.3.15 ✅ |
+
+已装到 `/opt/microduck-k1/ort/`(用 `ORT_DYLIB_PATH` 指向,**不覆盖 `/usr/lib`**)。
+
+> **教训**:早先 `apt-cache search spacemit | head -20` 被截断,漏看了这个包 ——
+> 它当时已经装在板上。**查包时不要截断输出。**
+
+### 对策(按实际优先级)
+
+| # | 方案 | 代价 | 状态 |
+|---|---|---|---|
+| **1** | **用 K1 自带的 `python3-spacemit-ort` 里的 ORT** | 零 | ✅ **已采用** |
+| 2 | 从 K3 搬 1.24.2(ABI 已核对兼容) | 低 | 备选 |
+| 3 | K1 apt 源里找更新包 | 低 | 已查:`v2.3` / `noble-porting` / `plucky` 均只有 1.18.1 |
+| 4 | 自己编译 ONNX Runtime(riscv64) | 高 | 兜底 |
+| 5 | 降 `ort` 绑定版本(动"代码零改动"前提) | 中 | 未用 |
 
 `robotd` 只用 **CPU EP**,不需要 `libspacemit_ep.so`(8×A100 专用,K1 本就没有)。
-**唯一未知**:spacemit 的 ORT 可能在初始化时 dlopen `libspacemit_ep.so`(非 NEEDED,运行时加载),
-K1 无此库 —— 需上板实测。
 
-**验证工具已备好**:`K1\k1\probe-onnx.sh`(dlopen + `OrtGetApiBase()->GetApi(23)` + 一帧 61→14 推理)、
-`fetch-ort-from-k3.sh`(本机拉取)、`install-ort-k1.sh`(K1 安装,用 `ORT_DYLIB_PATH` 不覆盖系统库)。
+**验证工具**:`K1\k1\probe-onnx.sh`(dlopen + `OrtGetApiBase()->GetApi(23)` + 一帧 61→14 推理)。
 
 ---
 
-## 6. 进度与未验证项
+## 6. 进度与结果(2026-09-09 实测)
 
 | 步 | 状态 |
 |---|---|
 | 1. 板卡确认(MUSE-Pi-Pro / X60 / Bianbu 2.3.3) | ✅ |
 | 2. apt 依赖 + rustup 1.98.1 | ✅ |
 | 3. 源码转储(本机 tar → scp) | ✅ |
-| 4. 裁剪构建产出二进制 | 🟡 已启动,板子离线前未跑完(停在 crates.io 下载阶段) |
-| 5. `ort` 吃上 1.18.1(R1) | ❌ 未验证 |
-| 6. `robotd --sim` 联调 / 环率 / 位移 | ❌ 未验证 |
+| 4. 裁剪构建产出二进制 | ✅ **43m39s / 313 crate / robotd 7 319 888 B** |
+| 5. `ort` 吃上 1.24.0(R1) | ✅ **已解决**(K1 自带) |
+| 6. `robotd --sim` 联调 | ✅ **起身 → 站立 → 行走 1.245 m → 转向,未摔** |
+
+| 指标 | K1 | K3(同期) |
+|---|---|---|
+| 空载环率(`--fake`) | **50.0 of 50 Hz · 0 missed** | 49.0 Hz · 0 missed |
+| 联调环率(`--sim` 隧道) | 46.5–48.5 Hz | 47.9 Hz |
+| ⚠️ **满载最低** | **40.7 Hz**(<45 门限) | 未低于 45 |
+| 行走 | **1.245 m** | 1.145 m |
+| CPU 温度 | **50 °C** | 64 °C |
+| Web 控制台 | ✅ `:8081`(浏览器摇杆,实测驱动 1.44 m) | ✅ `:8081` |
+
+**构建慢的真正原因**:K1 只有 **3.8 GiB 内存且无 swap**,6 个 rustc 并行(合计 ~1.9 GB)时
+内核反复回收页缓存,load average 达 **10.36** —— 瓶颈是内存不是 CPU。
+
+### 踩坑(9 条,详见 `K1\docs\05-联调实录.md` §踩坑清单)
+
+1. K1 上 `github.com` 不可达 → 源码须本机打包 scp
+2. **R1 解法就在板子上**(`python3-spacemit-ort` 自带 1.24.0);教训:`apt-cache search ... | head -20` 截断导致漏看
+3. 构建慢 = 内存压力,不是 CPU;可 `cargo build -j4`
+4. **`sit_toggle` 是切换不是"起身"** —— 连按两次坐回去
+5. 已折叠的鸭子**不要用 `robot.init`**(线性 ramp 会拖倒),用 `sit_toggle`
+6. **本机只能跑一个 `body_server`** —— 多实例抢 7801,后启动的"重启"无效
+7. **浏览器与测试脚本会互相覆盖指令**(`robot.move` last-writer-wins)
+8. `robotctl` 自建 socket 用 `--robot-socket`,不是 `--socket`
+9. 仿真执行器简化,速度跟踪仅 37–39%,**指令过猛容易摔**(`vx=-0.40` 实测开翻)
 
 **构建命令**(板子回来后重跑):
 

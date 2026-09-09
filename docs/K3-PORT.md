@@ -148,11 +148,18 @@ python3 /tmp/sim-drive.py --vx 0.25 --seconds 16               # 行走
 
 ---
 
-## 9. K1 前瞻(一句话)
+## 9. K1 —— 已平移跑通(2026-09-09)
 
-K1(8×X60 @1.8GHz、2 TOPS CPU 融合、MUSE-Pi-Pro 板卡形态)**代码零改动**即可平移。
-**2026-09-08 已实测**:板卡确认 `spacemit k1-x MUSE-Pi-Pro board`,环境就绪、源码已转储
-(K1 上 `github.com` 不可达,`git clone` 必失败,须从本机打包 scp);
-但 **K1 的 apt 只提供 `libonnxruntime.so.1.18.1`,低于主仓地板 1.23** ——
-立项时预判的 R1 风险**确认会真发生**(K3 无此问题,因其预装 1.24.2+spacemit.a1)。
+K1(8×X60 @1.8GHz、2 TOPS CPU 融合、MUSE-Pi-Pro 板卡形态)**代码零改动**平移完成:
+
+| 指标 | K1 | K3 |
+|---|---|---|
+| 裁剪构建 | 43m39s | **6m42s** |
+| 空载环率 | **50.0 of 50 Hz · 0 missed** | 49.0 Hz · 0 missed |
+| 行走 | **1.245 m** | 1.145 m |
+| CPU 温度 | **50 °C** | 64 °C |
+| ⚠️ 满载最低 | **40.7 Hz**(<45 门限) | 未低于 45 |
+
+途中解掉的一个真问题:K1 的 apt 只提供 `libonnxruntime.so.1.18.1`(低于地板 1.23),
+但 **`python3-spacemit-ort` 包里自带 1.24.0** —— 用 `ORT_DYLIB_PATH` 指过去即可,无需跨机搬运。
 详见 [`K1-PORT.md`](K1-PORT.md)。
