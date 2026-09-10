@@ -1,61 +1,59 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 400" width="860" height="400" role="img" aria-label="System architecture: the RISC-V board runs the robot runtime and drives the servo bus; the development host runs the MuJoCo simulator; the two speak over TCP.">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 376" width="860" height="376" role="img" aria-label="整体架构：板卡侧跑机器人运行时并驱动舵机总线，开发机侧跑 MuJoCo 仿真与训练，两者通过 TCP 7801 通信。">
+  <title>整体架构</title>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="#38bdf8"/>
     </marker>
-    <marker id="arrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M 0 0 L 10 5 L 0 10 z" fill="#a78bfa"/>
-    </marker>
   </defs>
 
-  <rect x="0" y="0" width="860" height="400" rx="14" fill="#0f172a"/>
-  <rect x="0.5" y="0.5" width="859" height="399" rx="14" fill="none" stroke="#1e293b"/>
+  <rect x="0" y="0" width="860" height="376" rx="14" fill="#0f172a"/>
+  <rect x="0.5" y="0.5" width="859" height="375" rx="14" fill="none" stroke="#1e293b"/>
 
-  <text x="34" y="42" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="17" font-weight="600" fill="#e2e8f0">The brain swap</text>
-  <text x="34" y="64" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="12.5" fill="#94a3b8">Same runtime, same policies — the body is either real servos or a MuJoCo duck.</text>
+  <text x="34" y="40" font-family="system-ui,-apple-system,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif" font-size="17" font-weight="600" fill="#e2e8f0">整体架构</text>
+  <text x="34" y="62" font-family="system-ui,-apple-system,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif" font-size="12.5" fill="#94a3b8">同一套运行时、同一组策略；身体要么是真舵机，要么是 MuJoCo 里的鸭子。</text>
 
-  <!-- left panel: board -->
-  <rect x="34" y="92" width="356" height="272" rx="11" fill="#111f36" stroke="#2b4a6f"/>
-  <text x="54" y="120" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13" font-weight="600" fill="#7dd3fc">SpacemiT K3 / K1 · riscv64</text>
+  <!-- 左：板卡侧 -->
+  <rect x="34" y="84" width="356" height="258" rx="11" fill="#111f36" stroke="#2b4a6f"/>
+  <text x="54" y="112" font-family="system-ui,-apple-system,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif" font-size="13" font-weight="600" fill="#7dd3fc">板卡侧 · SpacemiT K3 / K1（riscv64）</text>
 
-  <rect x="54" y="136" width="316" height="46" rx="8" fill="#16283f" stroke="#2b4a6f"/>
-  <text x="68" y="156" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12.5" font-weight="600" fill="#e2e8f0">robotd</text>
-  <text x="68" y="172" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#94a3b8">50 Hz control loop · safety · IPC</text>
+  <rect x="54" y="128" width="316" height="44" rx="8" fill="#16283f" stroke="#2b4a6f"/>
+  <text x="68" y="147" font-family="system-ui,-apple-system,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif" font-size="12.5" font-weight="600" fill="#e2e8f0">robotd</text>
+  <text x="68" y="163" font-family="system-ui,-apple-system,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif" font-size="11" fill="#94a3b8">50 Hz 控制环 · 安全 · IPC</text>
 
-  <rect x="54" y="190" width="316" height="46" rx="8" fill="#16283f" stroke="#2b4a6f"/>
-  <text x="68" y="210" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12.5" font-weight="600" fill="#e2e8f0">duck-control</text>
-  <text x="68" y="226" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#94a3b8">observations · policy · servo bus</text>
+  <rect x="54" y="178" width="316" height="44" rx="8" fill="#16283f" stroke="#2b4a6f"/>
+  <text x="68" y="197" font-family="system-ui,-apple-system,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif" font-size="12.5" font-weight="600" fill="#e2e8f0">duck-control</text>
+  <text x="68" y="213" font-family="system-ui,-apple-system,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif" font-size="11" fill="#94a3b8">观测构建 · 策略推理 · 舵机总线</text>
 
-  <rect x="54" y="244" width="316" height="46" rx="8" fill="#16283f" stroke="#2b4a6f"/>
-  <text x="68" y="264" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12.5" font-weight="600" fill="#e2e8f0">ONNX Runtime</text>
-  <text x="68" y="280" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#94a3b8">9 policies, 0.201 ms per inference</text>
+  <rect x="54" y="228" width="316" height="44" rx="8" fill="#16283f" stroke="#2b4a6f"/>
+  <text x="68" y="247" font-family="system-ui,-apple-system,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif" font-size="12.5" font-weight="600" fill="#e2e8f0">ONNX Runtime</text>
+  <text x="68" y="263" font-family="system-ui,-apple-system,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif" font-size="11" fill="#94a3b8">9 个策略 · 单次推理 0.201 ms</text>
 
-  <rect x="54" y="298" width="316" height="46" rx="8" fill="#16283f" stroke="#2b4a6f"/>
-  <text x="68" y="318" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12.5" font-weight="600" fill="#e2e8f0">Dynamixel bus</text>
-  <text x="68" y="334" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#94a3b8">15 servos + IMU at 1 Mbaud</text>
+  <rect x="54" y="278" width="316" height="44" rx="8" fill="#16283f" stroke="#2b4a6f"/>
+  <text x="68" y="297" font-family="system-ui,-apple-system,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif" font-size="12.5" font-weight="600" fill="#e2e8f0">Dynamixel 总线</text>
+  <text x="68" y="313" font-family="system-ui,-apple-system,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif" font-size="11" fill="#94a3b8">14 个舵机 + IMU · 1 Mbaud</text>
 
-  <!-- right panel: dev host -->
-  <rect x="470" y="92" width="356" height="272" rx="11" fill="#1b1533" stroke="#4c3d80"/>
-  <text x="490" y="120" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13" font-weight="600" fill="#c4b5fd">Development host · x86 / GPU</text>
+  <!-- 右：开发机侧 -->
+  <rect x="470" y="84" width="356" height="258" rx="11" fill="#1b1533" stroke="#4c3d80"/>
+  <text x="490" y="112" font-family="system-ui,-apple-system,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif" font-size="13" font-weight="600" fill="#c4b5fd">开发机侧 · x86 / GPU</text>
 
-  <rect x="490" y="136" width="316" height="46" rx="8" fill="#251c45" stroke="#4c3d80"/>
-  <text x="504" y="156" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12.5" font-weight="600" fill="#e2e8f0">duck-body</text>
-  <text x="504" y="172" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#94a3b8">MuJoCo · 200 Hz physics</text>
+  <rect x="490" y="128" width="316" height="44" rx="8" fill="#251c45" stroke="#4c3d80"/>
+  <text x="504" y="147" font-family="system-ui,-apple-system,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif" font-size="12.5" font-weight="600" fill="#e2e8f0">duck-body</text>
+  <text x="504" y="163" font-family="system-ui,-apple-system,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif" font-size="11" fill="#94a3b8">MuJoCo · 200 Hz 物理步进</text>
 
-  <rect x="490" y="190" width="316" height="46" rx="8" fill="#251c45" stroke="#4c3d80"/>
-  <text x="504" y="210" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12.5" font-weight="600" fill="#e2e8f0">microduck_rl</text>
-  <text x="504" y="226" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#94a3b8">PPO training · ONNX export</text>
+  <rect x="490" y="178" width="316" height="44" rx="8" fill="#251c45" stroke="#4c3d80"/>
+  <text x="504" y="197" font-family="system-ui,-apple-system,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif" font-size="12.5" font-weight="600" fill="#e2e8f0">microduck_rl</text>
+  <text x="504" y="213" font-family="system-ui,-apple-system,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif" font-size="11" fill="#94a3b8">PPO 训练 · 导出 ONNX</text>
 
-  <rect x="490" y="244" width="316" height="46" rx="8" fill="#251c45" stroke="#4c3d80"/>
-  <text x="504" y="264" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12.5" font-weight="600" fill="#e2e8f0">policy set</text>
-  <text x="504" y="280" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#94a3b8">9 ONNX + manifest, schema 2</text>
+  <rect x="490" y="228" width="316" height="44" rx="8" fill="#251c45" stroke="#4c3d80"/>
+  <text x="504" y="247" font-family="system-ui,-apple-system,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif" font-size="12.5" font-weight="600" fill="#e2e8f0">策略集</text>
+  <text x="504" y="263" font-family="system-ui,-apple-system,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif" font-size="11" fill="#94a3b8">9 个 ONNX + 清单 · schema 2</text>
 
-  <rect x="490" y="298" width="316" height="46" rx="8" fill="#251c45" stroke="#4c3d80"/>
-  <text x="504" y="318" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12.5" font-weight="600" fill="#e2e8f0">web console</text>
-  <text x="504" y="334" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#94a3b8">browser joystick over the same IPC</text>
+  <rect x="490" y="278" width="316" height="44" rx="8" fill="#251c45" stroke="#4c3d80"/>
+  <text x="504" y="297" font-family="system-ui,-apple-system,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif" font-size="12.5" font-weight="600" fill="#e2e8f0">Web 控制台</text>
+  <text x="504" y="313" font-family="system-ui,-apple-system,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif" font-size="11" fill="#94a3b8">浏览器摇杆，走同一套 IPC</text>
 
-  <!-- link -->
-  <line x1="392" y1="205" x2="468" y2="205" stroke="#38bdf8" stroke-width="1.6" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
-  <text x="430" y="196" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="10.5" fill="#7dd3fc">TCP</text>
-  <text x="430" y="222" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="10.5" fill="#94a3b8">7801</text>
+  <!-- 链路 -->
+  <line x1="392" y1="213" x2="468" y2="213" stroke="#38bdf8" stroke-width="1.6" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+  <text x="430" y="204" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace" font-size="10.5" fill="#7dd3fc">TCP</text>
+  <text x="430" y="230" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace" font-size="10.5" fill="#94a3b8">7801</text>
 </svg>
