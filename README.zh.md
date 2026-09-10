@@ -20,7 +20,7 @@ workspace：50 Hz 控制环、ONNX 策略执行、舵机总线，以及周边的
 本仓库把这套运行时原生编译到 SpacemiT 的 RISC-V 芯片上并真正驱动机器人，
 训练与仿真链路保持留在 x86/GPU 侧不变。
 
-![架构：板子跑运行时，开发机跑仿真](docs/assets/architecture.svg)
+![架构：板子跑运行时，开发机跑仿真](docs/assets/architecture.zh.svg)
 
 ## 状态
 
@@ -34,11 +34,11 @@ workspace：50 Hz 控制环、ONNX 策略执行、舵机总线，以及周边的
 两块板都能原生构建运行时、加载官方 9 个 ONNX 策略，并驱动 MuJoCo 里的鸭子在
 不摔倒的情况下完成起身、行走和转向。
 
-![K1 与 K3 对比](docs/assets/board-comparison.svg)
+![K1 与 K3 对比](docs/assets/board-comparison.zh.svg)
 
 ## 实测
 
-![一个控制周期](docs/assets/tick-budget.svg)
+![一个控制周期](docs/assets/tick-budget.zh.svg)
 
 <details>
 <summary>K3 —— 完整记录</summary>
@@ -83,7 +83,7 @@ workspace：50 Hz 控制环、ONNX 策略执行、舵机总线，以及周边的
 
 ## 策略从哪里来
 
-![流水线：训练、导出、发布、加载、验证](docs/assets/pipeline.svg)
+![流水线：训练、导出、发布、加载、验证](docs/assets/pipeline.zh.svg)
 
 ## 仓库结构
 

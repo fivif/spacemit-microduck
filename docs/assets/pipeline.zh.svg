@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 236" width="860" height="236" role="img" aria-label="策略流水线：在 microduck_rl 里训练、导出 ONNX、发布策略包、在 RISC-V 板卡上由 robotd 加载、再回到仿真验证。">
+  <title>策略流水线</title>
+  <defs>
+    <marker id="pipe" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="860" height="236" rx="14" fill="#0f172a"/>
+  <rect x="0.5" y="0.5" width="859" height="235" rx="14" fill="none" stroke="#1e293b"/>
+
+  <text x="34" y="40" font-family="system-ui,-apple-system,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif" font-size="16" font-weight="600" fill="#e2e8f0">策略从哪来</text>
+  <text x="34" y="62" font-family="system-ui,-apple-system,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif" font-size="12" fill="#94a3b8">训练留在 x86 / GPU，只有导出的计算图会落到板子上。</text>
+
+  <g font-family="system-ui,-apple-system,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif">
+    <rect x="34" y="84" width="144" height="72" rx="9" fill="#1b1533" stroke="#4c3d80"/>
+    <text x="48" y="112" font-size="12.5" font-weight="600" fill="#e2e8f0">训练</text>
+    <text x="48" y="132" font-size="10.5" fill="#94a3b8">microduck_rl</text>
+    <text x="48" y="148" font-size="10.5" fill="#94a3b8">PPO · 4096 环境</text>
+
+    <rect x="196" y="84" width="144" height="72" rx="9" fill="#1b1533" stroke="#4c3d80"/>
+    <text x="210" y="112" font-size="12.5" font-weight="600" fill="#e2e8f0">导出</text>
+    <text x="210" y="132" font-size="10.5" fill="#94a3b8">ONNX 计算图</text>
+    <text x="210" y="148" font-size="10.5" fill="#94a3b8">归一化已固化</text>
+
+    <rect x="358" y="84" width="144" height="72" rx="9" fill="#1b1533" stroke="#4c3d80"/>
+    <text x="372" y="112" font-size="12.5" font-weight="600" fill="#e2e8f0">发布</text>
+    <text x="372" y="132" font-size="10.5" fill="#94a3b8">策略 + 清单</text>
+    <text x="372" y="148" font-size="10.5" fill="#94a3b8">schema 2</text>
+
+    <rect x="520" y="84" width="144" height="72" rx="9" fill="#111f36" stroke="#2b4a6f"/>
+    <text x="534" y="112" font-size="12.5" font-weight="600" fill="#e2e8f0">加载</text>
+    <text x="534" y="132" font-size="10.5" fill="#94a3b8">robotd · riscv64</text>
+    <text x="534" y="148" font-size="10.5" fill="#94a3b8">ONNX Runtime · CPU</text>
+
+    <rect x="682" y="84" width="144" height="72" rx="9" fill="#111f36" stroke="#2b4a6f"/>
+    <text x="696" y="112" font-size="12.5" font-weight="600" fill="#e2e8f0">验证</text>
+    <text x="696" y="132" font-size="10.5" fill="#94a3b8">MuJoCo 孪生</text>
+    <text x="696" y="148" font-size="10.5" fill="#94a3b8">再接真舵机</text>
+  </g>
+
+  <line x1="180" y1="120" x2="194" y2="120" stroke="#475569" stroke-width="1.4" marker-end="url(#pipe)"/>
+  <line x1="342" y1="120" x2="356" y2="120" stroke="#475569" stroke-width="1.4" marker-end="url(#pipe)"/>
+  <line x1="504" y1="120" x2="518" y2="120" stroke="#475569" stroke-width="1.4" marker-end="url(#pipe)"/>
+  <line x1="666" y1="120" x2="680" y2="120" stroke="#475569" stroke-width="1.4" marker-end="url(#pipe)"/>
+
+  <rect x="34" y="176" width="792" height="32" rx="7" fill="#16283f" stroke="#2b4a6f"/>
+  <text x="48" y="196" font-family="system-ui,-apple-system,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif" font-size="11" fill="#7dd3fc">61 维观测</text>
+  <text x="104" y="196" font-family="system-ui,-apple-system,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif" font-size="11" fill="#64748b">+</text>
+  <text x="118" y="196" font-family="system-ui,-apple-system,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif" font-size="11" fill="#c4b5fd">14 维动作</text>
+  <text x="174" y="196" font-family="system-ui,-apple-system,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif" font-size="11" fill="#64748b">+</text>
+  <text x="188" y="196" font-family="system-ui,-apple-system,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif" font-size="11" fill="#7dd3fc">50 Hz</text>
+  <text x="236" y="196" font-family="system-ui,-apple-system,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif" font-size="11" fill="#94a3b8">— 每条策略共享的契约：换网络不用改机器人。</text>
+</svg>
