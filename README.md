@@ -2,140 +2,136 @@
 
 # spacemit-microduck
 
-**Running Microduck's robot runtime natively on SpacemiT RISC-V.**
+**把 Microduck 机器鸭的运行时原生跑在 SpacemiT RISC-V（K3 / K1）上。**
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-3b82f6?style=flat-square)](microduck/LICENSE)
-[![Platform](https://img.shields.io/badge/platform-riscv64-8b5cf6?style=flat-square)](#status)
-[![Boards](https://img.shields.io/badge/boards-K3%20%7C%20K1-06b6d4?style=flat-square)](#status)
-[![Control loop](https://img.shields.io/badge/control%20loop-50%20Hz-22c55e?style=flat-square)](#measurements)
+[![Platform](https://img.shields.io/badge/platform-riscv64-8b5cf6?style=flat-square)](#状态)
+[![Boards](https://img.shields.io/badge/boards-K3%20%7C%20K1-06b6d4?style=flat-square)](#状态)
+[![Control loop](https://img.shields.io/badge/control%20loop-50%20Hz-22c55e?style=flat-square)](#实测)
 
-English · [中文](README.zh.md)
+中文 · [English](README.en.md)
 
 </div>
 
 ---
 
-Microduck is a 25 cm bipedal robot driven by reinforcement-learning policies. Its runtime is a
-Rust workspace: a 50 Hz control loop, an ONNX policy executor, a servo bus, and the surrounding
-daemons. This repository ports that runtime to SpacemiT RISC-V SoCs and drives a robot with it,
-keeping the training and simulation chain on x86/GPU as before.
+Microduck 是一台约 25 cm 高的双足机器人，由强化学习策略驱动。它的运行时是一个 Rust
+workspace：50 Hz 控制环、ONNX 策略执行、舵机总线，以及周边的一圈 daemon。
+本仓库把这套运行时原生编译到 SpacemiT 的 RISC-V 芯片上并真正驱动机器人，
+训练与仿真链路保持留在 x86/GPU 侧不变。
 
-![Architecture: the board runs the runtime, the development host runs the simulator](docs/assets/architecture.svg)
+![架构：板子跑运行时，开发机跑仿真](docs/assets/architecture.svg)
 
-## Status
+## 状态
 
 | | K3 | K1 |
 |---|---|---|
-| SoC | 8x X100 @2.4 GHz, 60 TOPS NPU | 8x X60 @1.8 GHz, 2 TOPS (CPU fused) |
-| Board | K3 Pico-ITX | MUSE-Pi-Pro |
-| Role | compute reference | integration form factor |
-| Result | works | works |
+| 芯片 | 8× X100 @2.4 GHz，60 TOPS NPU | 8× X60 @1.8 GHz，2 TOPS（CPU 内融合） |
+| 板卡 | K3 Pico-ITX | MUSE-Pi-Pro |
+| 定位 | 性能平台 | 集成形态 |
+| 结果 | 跑通 | 跑通 |
 
-Both boards build the runtime natively, load the nine shipped ONNX policies, and drive a duck in
-MuJoCo through sit-to-stand, walking, and turning without falling.
+两块板都能原生构建运行时、加载官方 9 个 ONNX 策略，并驱动 MuJoCo 里的鸭子在
+不摔倒的情况下完成起身、行走和转向。
 
-![K1 against K3](docs/assets/board-comparison.svg)
+![K1 与 K3 对比](docs/assets/board-comparison.svg)
 
-## Measurements
+## 实测
 
-![One tick of the control loop](docs/assets/tick-budget.svg)
+![一个控制周期](docs/assets/tick-budget.svg)
 
 <details>
-<summary>K3 — full record</summary>
+<summary>K3 —— 完整记录</summary>
 
-| Metric | Value |
+| 指标 | 值 |
 |---|---|
-| Trimmed build | 6m42s, seven riscv64 binaries |
-| Policies loaded | 9 official ONNX, via SpacemiT ONNX Runtime 1.24.2 |
-| Motion | sit-to-stand (z 0.065 -> 0.116), 7 s standing, 1.45 m walking |
-| Control loop | 46-48 of 50 Hz, 0 missed ticks |
-| Single inference | 0.201 ms (p99 0.223) — 1.01% of the 20 ms tick |
-| Whole-loop CPU | about 1.2% of one core |
-| Velocity tracking | 0.097 m/s against a 0.25 m/s command (sim-to-sim gap) |
+| 裁剪构建 | 6m42s，7 个 riscv64 二进制 |
+| 策略加载 | 官方 9 个 ONNX，经 spacemit ONNX Runtime 1.24.2 |
+| 动作链 | 起身（z 0.065 → 0.116）、站立 7 s、行走 1.45 m |
+| 控制环率 | 46–48 of 50 Hz，0 丢帧 |
+| 单次推理 | 0.201 ms（p99 0.223）—— 占 20 ms 周期的 1.01% |
+| 整环 CPU | 约 1.2% 单核 |
+| 速度跟踪 | 命令 0.25 m/s，实测 0.097 m/s（sim-to-sim gap） |
 
 </details>
 
 <details>
-<summary>K1 — full record</summary>
+<summary>K1 —— 完整记录</summary>
 
-| Metric | Value |
+| 指标 | 值 |
 |---|---|
-| Trimmed build | 43m39s, 313 crates, `robotd` 7.3 MB |
-| Idle loop | 50.0 of 50 Hz, 0 missed ticks |
-| Motion | sit-to-stand, 1.245 m walking, turning, no falls |
-| Control loop (with simulator) | 46.5-48.5 of 50 Hz |
-| Control loop (fully loaded) | 40.7 Hz — below the 45 Hz health floor |
-| CPU temperature | 50 C |
+| 裁剪构建 | 43m39s，313 crate，`robotd` 7.3 MB |
+| 空载环率 | 50.0 of 50 Hz，0 丢帧 |
+| 动作链 | 起身、行走 1.245 m、转向，未摔 |
+| 联调环率 | 46.5–48.5 of 50 Hz |
+| 满载环率 | 40.7 Hz —— 低于 45 Hz 健康门限 |
+| CPU 温度 | 50 °C |
 
 </details>
 
-The full records, including reproduction commands and the traps each one cost, are in
-[`docs/`](docs).
+完整记录（含复现命令与各自的踩坑）在 [`docs/`](docs)。
 
-## Driving it from a browser
+## 用浏览器操控
 
-The same console runs on the board and drives the duck over the daemon's IPC — a joystick,
-the one-shot skills, and live posture and health. It holds no robot state of its own: the drive
-stream is forwarded at 20 Hz and stops on its own if the browser goes away.
+同一个控制台跑在板子上，通过 daemon 的 IPC 驱动鸭子：摇杆、一次性技能、实时姿态与健康。
+它自己不持有机器人状态——驱动流以 20 Hz 转发，浏览器离开后自动停止。
 
 <div align="center">
-  <img src="k3/web/ui-desktop.png" width="46%" alt="Console, desktop layout">
-  <img src="k3/web/ui-phone.png" width="26%" alt="Console, phone layout">
+  <img src="k3/web/ui-desktop.png" width="46%" alt="控制台，桌面布局">
+  <img src="k3/web/ui-phone.png" width="26%" alt="控制台，手机布局">
 </div>
 
-## Where the policies come from
+## 策略从哪里来
 
-![Pipeline: train, export, publish, load, verify](docs/assets/pipeline.svg)
+![流水线：训练、导出、发布、加载、验证](docs/assets/pipeline.svg)
 
-## Repository layout
+## 仓库结构
 
 ```
 spacemit-microduck/
-├── microduck/   the runtime source: upstream v0.11.0 plus the robotd --sim client
-├── k3/          K3: design notes, environment record, integration log, scripts, policies, console
-├── k1/          K1: design notes, environment record, runtime resolution, integration log, scripts
-└── docs/        measurement records
+├── microduck/   运行时源码：上游 v0.11.0 + robotd --sim 客户端
+├── k3/          K3：设计笔记、环境实测、联调实录、脚本、策略集、控制台
+├── k1/          K1：设计笔记、环境实测、运行时版本处理、联调实录、脚本
+└── docs/        实测记录
 ```
 
-## The `--sim` client
+## `--sim` 客户端
 
-Upstream v0.11.0 has no daemon-side simulation client, so `robotd` cannot be exercised without a
-robot. This repository adds one, ported from the upstream `sim-remote-io` branch onto the current
-tree, preserving the policy channel:
+上游 v0.11.0 没有 daemon 侧的仿真客户端，所以 `robotd` 在没有机器人的情况下无法被验证。
+本仓库补上了它，从上游 `sim-remote-io` 分支移植到当前代码树，并保留了 policy channel：
 
-| File | Change |
+| 文件 | 改动 |
 |---|---|
-| `duck-control/src/sim.rs` | new — `RemoteIo`, 439 lines |
+| `duck-control/src/sim.rs` | 新增 —— `RemoteIo`，439 行 |
 | `duck-control/src/lib.rs` | `+ pub mod sim;` |
 | `duck-control/Cargo.toml` | `+ serde_json` |
-| `robotd/src/main.rs` | `+ --sim` flag and startup branch |
+| `robotd/src/main.rs` | `+ --sim` 参数与启动分支 |
 
-The connection is lazy and retried every tick, so a daemon started before its simulator reports
-unhealthy until the simulator answers, and restarting the simulator does not mean restarting the
-robot.
+连接是懒建立、每 tick 重试的：先起 daemon 后起仿真，daemon 会一直报不健康直到仿真应答；
+仿真重启也不需要重启机器人。
 
-Trimmed build for RISC-V targets (no GStreamer or vendor NPU runtime):
+针对 RISC-V 的裁剪构建（去掉 GStreamer 与厂商 NPU 运行时）：
 
 ```bash
 cargo build --release --workspace \
     --exclude mediad --exclude duck-detect --exclude pet-detect
 ```
 
-## Documentation
+## 文档
 
-| Document | Contents |
+| 文档 | 内容 |
 |---|---|
-| [`docs/K3-PORT.md`](docs/K3-PORT.md) | K3 port: goal, environment, build, the `--sim` gap, integration results, traps |
-| [`docs/POLICY-RUNTIME.md`](docs/POLICY-RUNTIME.md) | What one tick of inference costs, and how the six networks are selected |
-| [`docs/K1-PORT.md`](docs/K1-PORT.md) | K1 port: environment, build, the ONNX Runtime version conflict and its resolution |
+| [`docs/K3-PORT.md`](docs/K3-PORT.md) | K3 移植：目标、环境、构建、`--sim` 缺口、联调结果、踩坑 |
+| [`docs/POLICY-RUNTIME.md`](docs/POLICY-RUNTIME.md) | 一次推理的开销，以及六个网络是怎么选的 |
+| [`docs/K1-PORT.md`](docs/K1-PORT.md) | K1 移植：环境、构建、ONNX Runtime 版本冲突与解决 |
 
-## License and provenance
+## 许可与来源
 
-This repository is a derivative work and follows upstream licensing:
+本仓库是派生作品，遵循上游许可：
 
-- `microduck/` — derived from [pollen-robotics/microduck](https://github.com/pollen-robotics/microduck), Apache-2.0, see `microduck/LICENSE`
-- `k3/policies/` — the official policy set [pollen-robotics/microduck-policies](https://huggingface.co/pollen-robotics/microduck-policies), Apache-2.0
-- `k3/`, `k1/`, and `docs/` — original to this project
+- `microduck/` —— 派生自 [pollen-robotics/microduck](https://github.com/pollen-robotics/microduck)，Apache-2.0，见 `microduck/LICENSE`
+- `k3/policies/` —— 官方策略集 [pollen-robotics/microduck-policies](https://huggingface.co/pollen-robotics/microduck-policies)，Apache-2.0
+- `k3/`、`k1/`、`docs/` —— 本项目原创
 
-Not included: `microduck_rl` (training), `mjlab`, and `bam` each have their own upstream
-repositories; Microduck's 3D models and hardware design are licensed separately by their authors.
+不在本仓库内：`microduck_rl`（训练）、`mjlab`、`bam` 各有独立上游仓库；
+Microduck 的 3D 模型与硬件设计由其作者单独授权。
