@@ -65,17 +65,24 @@ const REPORT_LOOKS: u64 = 20;
 /// Which runtime is doing the work.
 ///
 /// Chosen by the model's own extension rather than by a config switch: a `.rknn` only runs on the
-/// NPU and an `.onnx` only runs on the CPU, so asking somebody to say both is asking them to
-/// contradict themselves.
+/// Rockchip NPU and an `.onnx` only runs through ONNX Runtime, so asking somebody to say both is
+/// asking them to contradict themselves.
+///
+/// Within ONNX Runtime there is a second question — the vendor's NPU provider, or the CPU — and
+/// that one is not ours to answer: the board either has the provider or it does not, and
+/// [`duck_detect::onnx::Model::open_preferring_npu`] asks it and logs what it found. So both
+/// answers arrive here as the same variant.
 enum Backend {
-    Npu(duck_detect::rknn::Model),
-    Cpu(duck_detect::onnx::Model),
+    /// Rockchip's `librknnrt.so`, through `duck_detect::rknn`.
+    Rknn(duck_detect::rknn::Model),
+    /// ONNX Runtime — on the CPU, or on a SpaceMiT NPU when the board has the provider for it.
+    /// [`duck_detect::onnx::Model::runtime`] is what remembers which of the two it turned out to be.
+    Onnx(duck_detect::onnx::Model),
 }
 
 impl Backend {
     fn open(path: &Path) -> Result<Self> {
-        let rknn = path.extension().is_some_and(|ext| ext == "rknn");
-        if rknn {
+        if path.extension().is_some_and(|ext| ext == "rknn") {
             let model = duck_detect::rknn::Model::open(path)?;
             tracing::info!(
                 model = %path.display(),
@@ -83,28 +90,33 @@ impl Backend {
                 driver = %model.driver_version,
                 "duck detector on the npu"
             );
-            Ok(Self::Npu(model))
-        } else {
-            let model = duck_detect::onnx::Model::open(path)?;
-            tracing::info!(
-                model = %path.display(),
-                "duck detector on the cpu — an .onnx model, or an .rknn the npu would not take"
-            );
-            Ok(Self::Cpu(model))
+            return Ok(Self::Rknn(model));
         }
+
+        // An `.onnx`: the vendor's NPU provider when this board has one, the CPU when it does not.
+        // **The fallback is logged rather than silent** — those cores are the ones `robotd`'s
+        // control loop is using, and a robot that quietly went back to the slow path would walk
+        // differently and give nobody a reason to look here.
+        let model = duck_detect::onnx::Model::open_preferring_npu(path)?;
+        tracing::info!(
+            model = %path.display(),
+            runtime = %model.runtime,
+            "duck detector"
+        );
+        Ok(Self::Onnx(model))
     }
 
     fn input(&self) -> (usize, usize, usize) {
         match self {
-            Self::Npu(model) => model.input,
-            Self::Cpu(model) => model.input,
+            Self::Rknn(model) => model.input,
+            Self::Onnx(model) => model.input,
         }
     }
 
     fn infer(&mut self, frame: &[u8], out: &mut Vec<f32>) -> Result<()> {
         match self {
-            Self::Npu(model) => model.infer(frame, out),
-            Self::Cpu(model) => model.infer(frame, out),
+            Self::Rknn(model) => model.infer(frame, out),
+            Self::Onnx(model) => model.infer(frame, out),
         }
     }
 }
@@ -139,7 +151,9 @@ pub fn spawn_first(
         }
     }
     anyhow::bail!(
-        "no model would load ({}). For the NPU: sudo /usr/local/sbin/robot-setup-npu",
+        "no model would load ({}). For a Rockchip NPU: sudo /usr/local/sbin/robot-setup-npu. \
+         For a SpaceMiT one, the provider should be beside libonnxruntime.so — set \
+         SPACEMIT_EP_PATH if it is somewhere else.",
         refused.join("; ")
     )
 }

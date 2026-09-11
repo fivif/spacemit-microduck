@@ -17,11 +17,10 @@
 ```bash
 # 1. 启动身体(带 MuJoCo 窗口;--headless 无窗口)
 cd microduck_rl
-PYTHONPATH=src "<repo>/k3/local-sim/.venv/Scripts/python.exe" \
-    -m mjlab_microduck.sim.body_server --port 7801 --keyframe HOME
+PYTHONPATH=src python -m mjlab_microduck.sim.body_server --port 7801 --keyframe HOME
 
 # 2. 客户端验证(另一个终端)
-<repo>/k3/local-sim/.venv/Scripts/python.exe <repo>/k3/local-sim/test-client.py --steps 250
+python test-client.py --steps 250
 ```
 
 `--keyframe`:`SIT`(默认,折叠待命)/`HOME`(站立放置,trunk z=0.125)/`STAND`/`FOLD`。
@@ -59,9 +58,8 @@ PYTHONPATH=src "<repo>/k3/local-sim/.venv/Scripts/python.exe" \
 
 ```bash
 # 在 Windows(Git Bash),把本机 7801 映射到 K3 的 localhost:7801
-cd .../<tools>
-K3_SSH_HOST="root@<board> -p 22" ./tools/k3ssh.sh root@<board> \
-    -N -R 7801:127.0.0.1:7801 -o ServerAliveInterval=30 -o ExitOnForwardFailure=yes
+ssh -N -R 7801:127.0.0.1:7801 root@<board> \
+    -o ServerAliveInterval=30 -o ExitOnForwardFailure=yes
 ```
 
 K3 侧验证(已实测 ):

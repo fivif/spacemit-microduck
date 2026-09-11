@@ -2,6 +2,7 @@
 //!
 //! ```text
 //! sudo duck-bench --model duck.rknn --frames /var/tmp/frames
+//! sudo duck-bench --model duck_detect.onnx --frames /var/tmp/frames --backend spacemit
 //! ```
 //!
 //! Three questions, in the order they matter:
@@ -23,19 +24,23 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, bail};
-use clap::Parser;
-use duck_detect::{decode, letterbox_rgb, rknn::Model};
+use clap::{Parser, ValueEnum};
+use duck_detect::{decode, letterbox_rgb, onnx, rknn, spacemit};
 
 #[derive(Parser)]
 #[command(about = "Run the duck detector on this board and report what it costs")]
 struct Args {
-    /// The quantised model, as `scripts/to_rknn.py` in the duck_detector repo writes it.
+    /// The model: an `.rknn` for the Rockchip NPU, or an `.onnx` for ONNX Runtime.
     #[arg(long)]
     model: PathBuf,
 
     /// A directory of JPEGs — a capture session works, and so does anything else.
     #[arg(long)]
     frames: PathBuf,
+
+    /// Which runtime to run it on — see [`Backend`].
+    #[arg(long, value_enum, default_value_t = Backend::Auto)]
+    backend: Backend,
 
     /// Skip this many timed runs before measuring, so the first-call costs are not the answer.
     #[arg(long, default_value_t = 5)]
@@ -62,6 +67,88 @@ struct Args {
     /// Print a line per frame, for finding the one frame that behaves differently.
     #[arg(long)]
     verbose: bool,
+}
+
+/// Which runtime to run the model on.
+///
+/// **`auto` reads the model's extension first**, the way `mediad` does: a `.rknn` only runs on the
+/// Rockchip NPU and an `.onnx` only runs through ONNX Runtime, so asking a person to name both is
+/// asking them to contradict themselves. Within ONNX Runtime there is still one question — the
+/// vendor's NPU provider, or the CPU — and that one is answered by trying to load the provider,
+/// because a board either has it or does not.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+enum Backend {
+    Auto,
+    /// Rockchip's `librknnrt.so`. The robot's own path.
+    Rknn,
+    /// ONNX Runtime with the SpaceMiT NPU provider attached.
+    Spacemit,
+    /// ONNX Runtime on the CPU.
+    Cpu,
+}
+
+/// A detector that has been loaded, and the runtime that will be doing the arithmetic.
+///
+/// One ONNX variant rather than two, because the CPU and the SpaceMiT NPU are one code path: which
+/// provider gets the nodes is decided when the session is built, and [`onnx::Model::runtime`] is
+/// what remembers which it was.
+enum Detector {
+    Rknn(rknn::Model),
+    Onnx(onnx::Model),
+}
+
+impl Detector {
+    fn load(path: &Path, backend: Backend) -> Result<Self> {
+        match backend {
+            Backend::Rknn => Ok(Self::Rknn(rknn::Model::open(path)?)),
+            Backend::Cpu => Ok(Self::Onnx(onnx::Model::open(path)?)),
+            // Named explicitly, so a provider that will not load is the answer rather than
+            // something to quietly fall back from — which is the whole reason to ask for it by name.
+            Backend::Spacemit => Ok(Self::Onnx(onnx::Model::open_on(
+                path,
+                spacemit::Ep::load()?,
+            )?)),
+            Backend::Auto if path.extension().is_some_and(|ext| ext == "rknn") => {
+                Ok(Self::Rknn(rknn::Model::open(path)?))
+            }
+            // An .onnx model: whatever this board has. Which one it was is in the banner, from
+            // `Model::runtime` — that line is the only thing separating five times faster from
+            // five times slower.
+            Backend::Auto => Ok(Self::Onnx(onnx::Model::open_preferring_npu(path)?)),
+        }
+    }
+
+    fn input(&self) -> (usize, usize, usize) {
+        match self {
+            Self::Rknn(model) => model.input,
+            Self::Onnx(model) => model.input,
+        }
+    }
+
+    fn output_len(&self) -> usize {
+        match self {
+            Self::Rknn(model) => model.output_len,
+            Self::Onnx(model) => model.output_len,
+        }
+    }
+
+    /// What is doing the arithmetic, for the banner.
+    fn runtime(&self) -> String {
+        match self {
+            Self::Rknn(model) => format!(
+                "rknn api {} · driver {}",
+                model.api_version, model.driver_version
+            ),
+            Self::Onnx(model) => model.runtime.clone(),
+        }
+    }
+
+    fn infer(&mut self, frame: &[u8], out: &mut Vec<f32>) -> Result<()> {
+        match self {
+            Self::Rknn(model) => model.infer(frame, out),
+            Self::Onnx(model) => model.infer(frame, out),
+        }
+    }
 }
 
 /// CPU seconds this process has used, from `/proc/self/stat` — user + system, in seconds.
@@ -146,16 +233,15 @@ fn main() -> Result<()> {
     let args = Args::parse();
 
     let paths = jpegs(&args.frames)?;
-    let mut model = Model::open(&args.model)?;
-    let (height, width, channels) = model.input;
+    let mut model = Detector::load(&args.model, args.backend)?;
+    let (height, width, channels) = model.input();
     println!(
-        "runtime api {} · driver {}\nmodel {}×{}×{}, {} outputs\n{} frames, {} passes\n",
-        model.api_version,
-        model.driver_version,
+        "runtime {}\nmodel {}×{}×{}, {} outputs\n{} frames, {} passes\n",
+        model.runtime(),
         width,
         height,
         channels,
-        model.output_len,
+        model.output_len(),
         paths.len(),
         args.passes
     );

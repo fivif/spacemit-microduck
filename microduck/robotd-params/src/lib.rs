@@ -312,12 +312,133 @@ impl CongestionControl {
 /// ISP scales down from it, so 1080p30 asks for no scaling at all — what is unmeasured there is
 /// whether the capture path and the encoder hold 30 fps at 2.25x the pixels. A rung that does not
 /// hold runs slower; it is not a pipeline that fails to start.
+/// Which capture path the head camera is on.
+///
+/// **Two cameras that want nothing from each other.** The CSI path pins an IMX219 into a readout
+/// mode through `media-ctl` and writes rkisp's exposure controls; a USB camera is told what format
+/// to send and runs its own auto-exposure. Neither has anything to say about the other's device,
+/// so this is a choice — and `deny_unknown_fields` on [`MediaParams`] means a config that names
+/// them the wrong way round is refused rather than half-applied.
+///
+/// Defaults to [`CameraKind::Csi`], which is what every robot shipped so far has.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum CameraKind {
+    /// The IMX219 on the CSI connector, through rkisp.
+    #[default]
+    #[serde(rename = "csi")]
+    Csi,
+    /// A UVC camera on a USB port.
+    #[serde(rename = "uvc")]
+    Uvc,
+}
+
+/// Every backend, in the order an editor cycles them — and the strings the file uses.
+///
+/// One list, so the registry's choices, the file's values and [`CameraKind`] itself cannot
+/// disagree; the round-trip test pins it in both directions the way [`QUALITY_LABELS`]' does.
+pub const CAMERA_KIND_LABELS: &[&str] = &["csi", "uvc"];
+
+impl CameraKind {
+    /// The backends, in [`CAMERA_KIND_LABELS`] order.
+    pub const ALL: [CameraKind; 2] = [CameraKind::Csi, CameraKind::Uvc];
+
+    /// The name this backend has in the file.
+    pub fn label(self) -> &'static str {
+        match self {
+            CameraKind::Csi => "csi",
+            CameraKind::Uvc => "uvc",
+        }
+    }
+}
+
+/// What a USB camera is asked to send.
+///
+/// **Not probed, and not a preference.** The right answer is a fact about the camera that somebody
+/// reads off `v4l2-ctl --list-formats-ext` once: the one measured here does 1280×720 at 30 fps in
+/// MJPG and 5 fps in uncompressed `YUYV`, because a 1.8 MB frame at 30 Hz is more than USB 2.0
+/// carries. Probing and picking would turn "this camera is running at 5 fps" into something the
+/// pipeline looks responsible for.
+///
+/// [`CameraFormat::Mjpeg`] is the default because it is what a UVC camera does at full rate.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum CameraFormat {
+    /// Motion JPEG. Decoded by `jpegdec` from `gstreamer1.0-plugins-good`.
+    #[default]
+    #[serde(rename = "mjpeg")]
+    Mjpeg,
+    /// Uncompressed 4:2:2, V4L2's `YUYV`. **GStreamer spells this `YUY2`**, and the pipeline is
+    /// the only place the difference shows.
+    #[serde(rename = "yuyv")]
+    Yuyv,
+    /// Uncompressed 4:2:2 in the byte order the pipeline already wants.
+    #[serde(rename = "uyvy")]
+    Uyvy,
+    /// Uncompressed 4:2:0.
+    #[serde(rename = "nv12")]
+    Nv12,
+}
+
+/// Every format, in the order an editor cycles them — and the strings the file uses.
+pub const CAMERA_FORMAT_LABELS: &[&str] = &["mjpeg", "yuyv", "uyvy", "nv12"];
+
+impl CameraFormat {
+    /// The formats, in [`CAMERA_FORMAT_LABELS`] order.
+    pub const ALL: [CameraFormat; 4] = [
+        CameraFormat::Mjpeg,
+        CameraFormat::Yuyv,
+        CameraFormat::Uyvy,
+        CameraFormat::Nv12,
+    ];
+
+    /// The name this format has in the file.
+    pub fn label(self) -> &'static str {
+        match self {
+            CameraFormat::Mjpeg => "mjpeg",
+            CameraFormat::Yuyv => "yuyv",
+            CameraFormat::Uyvy => "uyvy",
+            CameraFormat::Nv12 => "nv12",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, default)]
 pub struct MediaParams {
     /// Stream the head camera. `false` streams a test pattern instead, which is what a board
     /// with no camera wants: the pipeline starts, so the WebRTC control channel exists.
     pub camera: bool,
+    /// Which capture path that camera is on. See [`CameraKind`].
+    pub camera_kind: CameraKind,
+    /// The camera's device node.
+    ///
+    /// Unset means the CSI path's default, `/dev/video0`. **Required when `camera_kind` is `uvc`**
+    /// — a UVC camera brings two nodes and the capture one is neither `/dev/video0` nor a stable
+    /// number, so defaulting there would open something that is not the camera and fail with a
+    /// caps error instead of a config error. `mediad` refuses to start rather than guess.
+    ///
+    /// Prefer `/dev/v4l/by-id/…`: `videoN` depends on enumeration order, and the ISP takes the
+    /// first ten on a board that has one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub camera_device: Option<String>,
+    /// What that camera is asked to send. Only read when `camera_kind` is `uvc`.
+    pub camera_format: CameraFormat,
+    /// The camera's **native** mode, which is a different thing from `quality`.
+    ///
+    /// `quality` is what leaves this daemon; these are what is asked of the camera, and the two
+    /// need not match — `videoscale` and `videorate` sit between them. Keeping them apart is not
+    /// tidiness: a UVC camera advertises a short list of modes (the one measured here has
+    /// 1280×720, 1920×1080, 640×480 and four larger), and asking for one it does not have is
+    /// `not-negotiated` at the first buffer, which is a pipeline that will not start.
+    ///
+    /// **Read these off `v4l2-ctl --list-formats-ext`.** Unset means 1280×720@30, which is the
+    /// commonest UVC mode and the one every measurement in `mediad` was taken at.
+    pub camera_width: u32,
+    pub camera_height: u32,
+    /// The camera's native rate, and a ceiling on `quality`: `videorate` drops frames and never
+    /// makes them, so a stream cannot be smoother than the camera feeding it. `Params::validate`
+    /// refuses that combination rather than letting it stamp frames with times they were not
+    /// captured at.
+    pub camera_fps: u32,
     /// Frame size and rate, as one name. [`Quality`] says why it is one key and not four.
     pub quality: Quality,
     /// Starting video bitrate, bits per second. Unset follows the quality —
@@ -369,6 +490,15 @@ impl Default for MediaParams {
             // On, because a robot with a camera is the case, and a board without one shows a
             // test pattern rather than nothing only if somebody turns this off.
             camera: true,
+            // What every robot shipped so far has, and what the CSI path in `mediad` was written
+            // for. Naming it rather than deriving it keeps the default a decision.
+            camera_kind: CameraKind::Csi,
+            camera_device: None,
+            camera_format: CameraFormat::default(),
+            // The commonest UVC mode, and the one every measurement in `mediad` was taken at.
+            camera_width: 1280,
+            camera_height: 720,
+            camera_fps: 30,
             quality: Quality::default(),
             bitrate: None,
             // Nobody has measured this robot's camera. `mediad` says so on the wire rather than
@@ -1703,6 +1833,8 @@ pub enum ParamsError {
         min: u32,
         max: u32,
     },
+    #[error("{path}: {reason}")]
+    Camera { path: String, reason: String },
 }
 
 /// The band `media.bitrate` is accepted in, bits per second.
@@ -1789,6 +1921,82 @@ impl Params {
                 got: bitrate,
                 min: BITRATE_MIN,
                 max: BITRATE_MAX,
+            });
+        }
+        // **Refused here rather than at the first frame**, for the reason the bitrate check above
+        // gives — and for one more of its own. A UVC camera has no fallback: it brings two device
+        // nodes, the capture one is neither `/dev/video0` nor a stable number, and a daemon that
+        // guessed would open something that is not the camera and fail with a GStreamer caps error
+        // naming a pad. This is the last point where the message can name the config key instead.
+        if self.media.camera_kind == CameraKind::Uvc {
+            let reason = match self.media.camera_device.as_deref() {
+                None => Some(
+                    "media.camera_kind is \"uvc\" but media.camera_device is unset. Give it the \
+                     capture node from `v4l2-ctl --list-devices` — the by-id path if the camera \
+                     publishes one, because videoN depends on enumeration order"
+                        .to_owned(),
+                ),
+                Some("none") => Some(
+                    "media.camera_device is \"none\". That spelling disables a slot in [policy], \
+                     not here — to use the default, delete the key rather than emptying it"
+                        .to_owned(),
+                ),
+                Some(device) if !device.starts_with('/') => Some(format!(
+                    "media.camera_device must be an absolute device path, got {device:?}"
+                )),
+                Some(_) => None,
+            };
+            if let Some(reason) = reason {
+                return Err(ParamsError::Camera {
+                    path: path.display().to_string(),
+                    reason,
+                });
+            }
+        }
+
+        // The native mode, which is a fact about the camera rather than a preference —
+        // `v4l2-ctl --list-formats-ext` is where the numbers come from. Checked for plausibility
+        // only; whether *this* camera has it is not knowable from here, and a mode it does not
+        // have fails at link time with a caps error.
+        let media = &self.media;
+        if media.camera_width == 0
+            || media.camera_height == 0
+            || media.camera_width > 8192
+            || media.camera_height > 8192
+            || u64::from(media.camera_width) * u64::from(media.camera_height) > 16_777_216
+            || !media.camera_width.is_multiple_of(2)
+            || !media.camera_height.is_multiple_of(2)
+        {
+            return Err(ParamsError::Camera {
+                path: path.display().to_string(),
+                reason: format!(
+                    "media.camera_width/height need a positive even size of at most 8192 a side \
+                     and 16 megapixels, got {}x{}",
+                    media.camera_width, media.camera_height
+                ),
+            });
+        }
+        if media.camera_fps == 0 || media.camera_fps > 120 {
+            return Err(ParamsError::Camera {
+                path: path.display().to_string(),
+                reason: format!(
+                    "media.camera_fps must be between 1 and 120, got {}",
+                    media.camera_fps
+                ),
+            });
+        }
+        // **`videorate drop-only=true` drops frames and never makes them.** An output rate above
+        // the camera's is not refused by GStreamer — it silently stamps frames with times they were
+        // not captured at, which is the kind of wrong that a video looks fine under.
+        if media.quality.fps() > media.camera_fps {
+            return Err(ParamsError::Camera {
+                path: path.display().to_string(),
+                reason: format!(
+                    "media.quality is {} but media.camera_fps is {} — a stream cannot be smoother \
+                     than the camera feeding it",
+                    media.quality.label(),
+                    media.camera_fps
+                ),
             });
         }
         Ok(())

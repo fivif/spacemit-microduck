@@ -1,6 +1,6 @@
 #!/bin/bash
-# K3 一次性环境初始化: rustup + clone microduck 主仓
-# 在 K3(root@<board>)上执行。/tmp/… 拉入 -> bash /tmp/env-init.sh
+# K3 一次性环境初始化: rustup + 核对源码树
+# 在 K3(root@<board>)上执行。前置:主仓源码已解包到 /opt/microduck-k3/microduck
 set -euo pipefail
 
 if ! command -v rustc >/dev/null 2>&1; then
@@ -11,13 +11,10 @@ export PATH="$HOME/.cargo/bin:$PATH"
 rustc -V
 cargo -V
 
-echo "[2/3] clone microduck upstream…"
-mkdir -p /opt/microduck-k3
-cd /opt/microduck-k3
-if [ ! -d microduck/.git ]; then
-  git clone --depth 1 https://github.com/pollen-robotics/microduck.git
-fi
-cd microduck
+echo "[2/3] 核对源码树…"
+cd /opt/microduck-k3/microduck
+[ -f Cargo.toml ] || { echo "缺少 /opt/microduck-k3/microduck(Cargo.toml 不在),先传源码树" >&2; exit 1; }
+grep -m1 '^version' Cargo.toml || true
 
 echo "[3/3] rustup target (riscv64gc native; default toolchain already native)…"
 rustup target list --installed

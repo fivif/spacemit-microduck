@@ -286,14 +286,38 @@ fn main() -> ExitCode {
             }
         }
 
-        let source = if media.camera {
-            mediad::pipeline::Source::Camera(mediad::pipeline::Camera {
-                device: args.camera_device.clone(),
-                exposure: args.exposure,
-                analogue_gain: args.analogue_gain,
-            })
-        } else {
+        let source = if !media.camera {
             mediad::pipeline::Source::Test
+        } else {
+            match media.camera_kind {
+                robotd_params::CameraKind::Csi => mediad::pipeline::Source::Camera(
+                    mediad::pipeline::Camera {
+                        // The flag is the CSI path's device, and its default is the one that path
+                        // has always used. `[media] camera_device` overrides it for a board whose
+                        // ISP is somewhere else.
+                        device: media
+                            .camera_device
+                            .clone()
+                            .unwrap_or_else(|| args.camera_device.clone()),
+                        exposure: args.exposure,
+                        analogue_gain: args.analogue_gain,
+                    },
+                ),
+                robotd_params::CameraKind::Uvc => {
+                    // **Constructed only with a device, and `Params::validate` is what guarantees
+                    // one.** The refusal lives there rather than here so `robotctl configure`
+                    // rejects the write too — a daemon that will not start is a much later and
+                    // more expensive way to find out about a typo in a device path.
+                    let device = media.camera_device.clone().unwrap_or_default();
+                    mediad::pipeline::Source::Usb(mediad::pipeline::Usb {
+                        device,
+                        format: media.camera_format,
+                        width: media.camera_width,
+                        height: media.camera_height,
+                        fps: media.camera_fps,
+                    })
+                }
+            }
         };
 
         // Frame size and rate are still pinned rather than negotiated — both branches of the tee
@@ -350,6 +374,18 @@ fn main() -> ExitCode {
                     exposure = args.exposure,
                     analogue_gain = args.analogue_gain,
                     "--no-auto-exposure: the picture stays at the starting exposure"
+                );
+                None
+            }
+            // **Not a camera without a sensor, a camera whose sensor is somebody else's to
+            // manage.** The exposure and gain this loop writes are rkisp control names in the
+            // sensor's own units; a UVC camera has different ones in different units, and passing
+            // the wrong name to `v4l2src` is at best ignored. A UVC camera runs its own
+            // auto-exposure, so there is nothing here for this loop to converge.
+            (mediad::pipeline::Source::Usb(_), _) => {
+                tracing::info!(
+                    "usb camera: exposure and white balance are the camera's own; \
+                     no sensor controls are written"
                 );
                 None
             }

@@ -5,19 +5,21 @@
 # 两板同为 riscv64、ABI 一致,且 K3 的 .so 只要求 GLIBC_2.38 / GLIBCXX_3.4.30,
 # K1 有 glibc 2.39 / gcc 13.2 → 可以直接搬。依赖实测见 docs/04 §2。
 #
-# 产出:<本目录>/ort-k1/{libonnxruntime.so.1.24.2+spacemit.a1, libonnxruntime.so,
+# 用法:K3_HOST=root@<board> ./fetch-ort-from-k3.sh
+#
+# 产出:<本目录>/ort-k1/{libonnxruntime.so.<版本>, libonnxruntime.so,
 #                        libonnxruntime_providers_shared.so, MANIFEST.txt}
 # 之后:scp -r ort-k1 root@<k1-ip>:/tmp/ && 在 K1 上跑 install-ort-k1.sh
 set -euo pipefail
 
-K3_HOST="${K3_SSH_HOST:-root@<board>}"     # k3ssh.sh 会把旧 LAN token 改写成公网隧道
+K3_HOST="${K3_HOST:-${K3_SSH_HOST:-root@<board>}}"
+SSH_OPTS=(-o ServerAliveInterval=30 -o ExitOnForwardFailure=yes)
 OUT="$(cd "$(dirname "$0")" && pwd)/ort-k1"
-YOLOS="<dev>/Desktop/Work_World/<tools>"
 
 mkdir -p "$OUT"
 
 echo "[1/3] 在 K3 上定位 ORT…"
-remote=$("$YOLOS/tools/k3ssh.sh" "$K3_HOST" '
+remote=$(ssh "${SSH_OPTS[@]}" "$K3_HOST" '
     L=$(readlink -f /usr/lib/libonnxruntime.so)
     P=$(readlink -f /usr/lib/libonnxruntime_providers_shared.so 2>/dev/null || true)
     echo "$L"
@@ -26,7 +28,7 @@ remote=$("$YOLOS/tools/k3ssh.sh" "$K3_HOST" '
 lib=$(echo "$remote" | sed -n '1p')
 prov=$(echo "$remote" | sed -n '2p')
 
-if [ -z "$lib" ] || [ ! -n "$lib" ]; then
+if [ -z "$lib" ]; then
     echo "✗ K3 上没找到 libonnxruntime.so" >&2
     exit 1
 fi
@@ -34,11 +36,9 @@ echo "    lib : $lib"
 echo "    prov: ${prov:-（无）}"
 
 echo "[2/3] 拉取…"
-"$YOLOS/tools/k3scp.sh" "$K3_HOST:$lib" "$OUT/" || {
-    echo "  k3scp.sh 不支持远程→本地方向,改用 ssh+cat 直取…"
-    "$YOLOS/tools/k3ssh.sh" "$K3_HOST" "cat '$lib'" > "$OUT/$(basename "$lib")"
-}
-[ -n "$prov" ] && "$YOLOS/tools/k3scp.sh" "$K3_HOST:$prov" "$OUT/" 2>/dev/null || true
+scp "${SSH_OPTS[@]}" "$K3_HOST:$lib" "$OUT/" 2>/dev/null || \
+    ssh "${SSH_OPTS[@]}" "$K3_HOST" "cat '$lib'" > "$OUT/$(basename "$lib")"
+[ -n "$prov" ] && { scp "${SSH_OPTS[@]}" "$K3_HOST:$prov" "$OUT/" 2>/dev/null || true; }
 
 # 建标准符号链接名 —— ort 的 load-dynamic 默认找的是 libonnxruntime.so
 (cd "$OUT" && ln -sf "$(basename "$lib")" libonnxruntime.so 2>/dev/null || \

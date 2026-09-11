@@ -46,6 +46,14 @@
 //! measures a particular robot and puts the result in `[media.intrinsics]`. A consumer that needs
 //! better can then tell that it needs to ask.
 
+/// The USB capture chain, for a board whose camera is not on the CSI connector.
+///
+/// **Linux-only, like `pipeline`.** This module is the only part of `camera` that talks to
+/// GStreamer; the intrinsics above are arithmetic on two numbers and run anywhere, which is what
+/// makes their tests worth having on a laptop.
+#[cfg(target_os = "linux")]
+pub mod uvc;
+
 /// The pixel pitch of the IMX219, from its datasheet.
 const PIXEL_PITCH_UM: f64 = 1.12;
 

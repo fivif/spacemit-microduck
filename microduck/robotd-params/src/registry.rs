@@ -400,6 +400,36 @@ pub const REGISTRY: &[Entry] = &[
         "Stream the head camera — off is a test pattern, for a board with no camera",
     ),
     feature(
+        "media.camera_kind",
+        Kind::Choice(crate::CAMERA_KIND_LABELS),
+        "Which capture path that camera is on — csi is the IMX219 through rkisp, uvc is a USB camera",
+    ),
+    entry(
+        "media.camera_device",
+        Kind::OptionalPath,
+        "The camera's device node — required for uvc, /dev/video0 by default on csi; prefer /dev/v4l/by-id/…",
+    ),
+    feature(
+        "media.camera_format",
+        Kind::Choice(crate::CAMERA_FORMAT_LABELS),
+        "What a USB camera is asked to send — mjpeg reaches full rate; read v4l2-ctl --list-formats-ext",
+    ),
+    entry(
+        "media.camera_width",
+        Kind::Integer,
+        "The USB camera's native width in pixels — from v4l2-ctl --list-formats-ext, not media.quality",
+    ),
+    entry(
+        "media.camera_height",
+        Kind::Integer,
+        "The USB camera's native height in pixels — from v4l2-ctl --list-formats-ext",
+    ),
+    entry(
+        "media.camera_fps",
+        Kind::Integer,
+        "The USB camera's native frame rate, and a ceiling on media.quality — videorate drops, never invents",
+    ),
+    feature(
         "media.quality",
         Kind::Choice(crate::QUALITY_LABELS),
         "Video frame size and rate; 720p30 is the rung mediad was measured at",
@@ -622,6 +652,8 @@ mod tests {
                 "audio.greet",
                 "audio.pet_detect",
                 "media.camera",
+                "media.camera_kind",
+                "media.camera_format",
                 "media.quality",
                 // The five one-shot buttons. Front-page keys because "what does this button do"
                 // is a question somebody asks holding the pad, not while reading tuning docs.

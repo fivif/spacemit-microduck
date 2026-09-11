@@ -60,11 +60,13 @@ workspace：50 Hz 控制环、ONNX 策略执行、舵机总线，以及周边的
 
 | 指标 | 值 |
 |---|---|
-| 裁剪构建 | 43m39s，313 crate，`robotd` 7.3 MB |
+| 构建 | 43m39s，313 crate，`robotd` 7.3 MB |
 | 空载环率 | 50.0 of 50 Hz，0 丢帧 |
 | 动作链 | 起身、行走 1.245 m、转向，未摔 |
-| 联调环率 | 46.5–48.5 of 50 Hz |
-| 满载环率 | 40.7 Hz —— 低于 45 Hz 健康门限 |
+| 联调环率 | 46.5–48.5 of 50 Hz（仿真在另一台机器，走 SSH 隧道） |
+| 满载环率 | 40.7 Hz —— 这一跳是**隧道**的上限，不是板子的 |
+| 板载环率 | **50.0 of 50 Hz，0 丢帧**（仿真挪进板内 127.0.0.1，48 s） |
+| 板载开销 | robotd **1.9% 单核**，系统 98.5% 空闲 |
 | CPU 温度 | 50 °C |
 
 </details>
@@ -110,12 +112,20 @@ spacemit-microduck/
 连接是懒建立、每 tick 重试的：先起 daemon 后起仿真，daemon 会一直报不健康直到仿真应答；
 仿真重启也不需要重启机器人。
 
-针对 RISC-V 的裁剪构建（去掉 GStreamer 与厂商 NPU 运行时）：
+K3 的构建只去掉 `mediad`（K3 尚未把这条链跑起来，不是 riscv64 做不了）；K1 上它也能编能跑，
+已不裁 —— USB 摄像头链路 MJPEG → UYVY → `spacemith264enc`（硬件 H.264）→ WebRTC，出实帧，
+消费端实测 **29.97 of 30 fps、0 丢帧**（见 [`docs/K1-MEDIA.md`](docs/K1-MEDIA.md)）。此前编不过
+**不是** riscv64 缺 GStreamer/厂商硬件编码，而是板上没装 GStreamer 的 `-dev` 包：
 
 ```bash
-cargo build --release --workspace \
-    --exclude mediad --exclude duck-detect --exclude pet-detect
+# K1：全量构建
+cargo build --release --workspace
+# K3：仍排除 mediad
+cargo build --release --workspace --exclude mediad
 ```
+
+`duck-detect` **不裁**：它走 `dlopen`，板上有 NPU 运行时就用 NPU，没有就退回 CPU（见
+[`docs/K1-PORT.md`](docs/K1-PORT.md)），编译期不需要任何厂商库；`duck-bench` 也在这条依赖上。
 
 ## 文档
 
@@ -124,6 +134,7 @@ cargo build --release --workspace \
 | [`docs/K3-PORT.md`](docs/K3-PORT.md) | K3 移植：目标、环境、构建、`--sim` 缺口、联调结果、踩坑 |
 | [`docs/POLICY-RUNTIME.md`](docs/POLICY-RUNTIME.md) | 一次推理的开销，以及六个网络是怎么选的 |
 | [`docs/K1-PORT.md`](docs/K1-PORT.md) | K1 移植：环境、构建、ONNX Runtime 版本冲突与解决 |
+| [`docs/K1-MEDIA.md`](docs/K1-MEDIA.md) | K1 摄像头链路：`mediad` 的 GStreamer 依赖、UVC 取帧、厂商硬件编码与 WebRTC 出流 |
 
 ## 许可与来源
 

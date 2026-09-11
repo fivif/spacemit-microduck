@@ -13,9 +13,10 @@
 | **核心目标** | 用 SpacemiT K3 作为真机大脑(原平台核心板) |
 | 仿真环境 | **不上板** —— `duck-body`(CPU MuJoCo)+ `robotd --sim` 留在 x86 开发台 |
 | 训练 | **不上板** —— mjlab + MuJoCo Warp + PPO 是 NVIDIA CUDA 专属,与芯片无关 |
-| 后续 | K1 平移(同方法,CPU 更弱一档,无独立 EP 库) |
+| K1 | 同一方法平移完成(CPU 更弱一档,策略仍走 CPU)—— 见 [`../k1/`](../k1/) |
 
-**为什么可行**:主仓唯一的硬 C 依赖是 `mediad` 的 gstreamer(可裁剪);
+**为什么可行**:主仓唯一的硬 C 依赖是 `mediad` 的 gstreamer,K3 只是还没把它跑起来
+(不是 riscv64 缺实现 —— K1 同架构已编出并运行,见 [`K1-MEDIA.md`](K1-MEDIA.md));
 `ort` 用 **load-dynamic**(dlopen 现有 `libonnxruntime.so`,不编译 C++ 部分),
 K3 的 Bianbu 已装 **ONNX Runtime 1.24.2+spacemit.a1 + EP 主库**,高于主仓地板 1.23。
 
@@ -41,10 +42,20 @@ K3 的 Bianbu 已装 **ONNX Runtime 1.24.2+spacemit.a1 + EP 主库**,高于主�
 
 ```bash
 cd /opt/microduck-k3/microduck
-cargo build --release --exclude mediad --exclude duck-detect --exclude pet-detect
+cargo build --release --workspace --exclude mediad
 ```
 
 - **实测 6m42s 全绿**,产出 `robotd`(7.3 MB)等 7 个 RISC-V 二进制
+  (那次还带着 `--exclude duck-detect`,`2026-09-10` 已去掉 —— 理由见下一条的同款问题)
+- 裁剪现在只剩 `mediad` 一个,原因是 K3 尚未做这条链,不是 riscv64 做不了。`duck-detect` **不裁**:它靠 `dlopen` 找运行时,编译期不需要
+  厂商库;`duck-bench` 也在这个 crate 里,而它是板上唯一能验证 NPU provider 的工具。
+- 那次构建还多排了一个 `pet-detect`,理由是「走 rknn dlopen」—— **这个理由不成立**,
+  而且那个排除**本来也没生效**:`robotd/Cargo.toml` 里有
+  `pet-detect = { path = "../pet-detect" }`,`robotd/src/main.rs` 用 `pet_detect::worker::PetHandle`
+  和 `PettingEvent`。`--exclude` 只挡顶层成员的产物,挡不住被依赖的库 ——
+  所以 `pet-detect` 的代码(ort dlopen + rustfft + hound)**一直编在那 7.3 MB 的 robotd 里**,
+  只是 `pet-detect` / `pet-features` 两个独立二进制没产出。已在板上用 `strings` 验证。
+  它和 rknn 无关:K1 上单独编译 **2m46s**、产物 **1 770 728 B**,喂 3 s 静音正常输出 `p 0.000 normal`。
 - 踩过的两个坑:
   1. `padd`(手柄服务)→ gilrs → `libudev-sys` 构建失败 → `apt install libudev-dev`
   2. `duck-control` 在 v0.11.0 未声明 `serde_json`(移植的 sim 模块需要)
@@ -81,7 +92,7 @@ cargo build --release --exclude mediad --exclude duck-detect --exclude pet-detec
 | 行走(vx=0.25 命令) | 15 s 走 **1.45 m**(实测 0.097 m/s),未摔倒 |
 | 环率 | **46-48 of 50 Hz**(健康门限 45) |
 | Web 控制台 | K3 上 `:8081` 单页控制台,摇杆/坐站/技能全部走通 |
-| 速度跟踪 | 注意: 命令 0.25 m/s,实测 **0.097 m/s(39%)** —— sim-to-sim gap,见 §6.6 |
+| 速度跟踪 | 命令 0.25 m/s,实测 **0.097 m/s(39%)** —— sim-to-sim gap,见 §6.6 |
 
 > **推理开销实测**(2026-09-09,`--fake` 无仿真):单次 ONNX 推理 **0.201 ms**(占 50 Hz 预算 1.01%),
 > 整环 CPU **约 1.2% 单核**,0 missed ticks。详见 [`POLICY-RUNTIME.md`](POLICY-RUNTIME.md)。
@@ -116,13 +127,11 @@ cargo build --release --exclude mediad --exclude duck-detect --exclude pet-detec
 ```bash
 # 开发机:启动本地仿真(SIT 起始)
 cd microduck_rl
-PYTHONPATH=src "<repo>/k3/local-sim/.venv/Scripts/python.exe" \
-    -m mjlab_microduck.sim.body_server --port 7801
+PYTHONPATH=src python -m mjlab_microduck.sim.body_server --port 7801
 
 # 开发机:把仿真端口映射到板子
-cd <tools>
-K3_SSH_HOST="root@<board> -p 22" ./tools/k3ssh.sh root@<board> \
-    -N -R 7801:127.0.0.1:7801 -o ServerAliveInterval=30 -o ExitOnForwardFailure=yes
+ssh -N -R 7801:127.0.0.1:7801 root@<board> \
+    -o ServerAliveInterval=30 -o ExitOnForwardFailure=yes
 
 # K3
 cd /opt/microduck-k3/microduck
@@ -143,13 +152,14 @@ python3 /tmp/sim-drive.py --vx 0.25 --seconds 16               # 行走
 | 策略运行时实测 | [`POLICY-RUNTIME.md`](POLICY-RUNTIME.md)(推理耗时 / CPU 占用 / 选网逻辑) |
 | K1 版(实测进展) | [`K1-PORT.md`](K1-PORT.md) + `k1/` |
 | 芯片规格 | SpacemiT 官方产品资料 |
-| 本知识库(4 仓) | [`README.md`](../README.md) · [`RELATIONS.md`](../RELATIONS.md) |
+| 本仓库 | [`README.md`](../README.md) · [`README.en.md`](../README.en.md) |
 
 ---
 
 ## 9. K1 —— 已平移跑通(2026-09-09)
 
-K1(8×X60 @1.8GHz、2 TOPS CPU 融合、MUSE-Pi-Pro 板卡形态)**代码零改动**平移完成:
+K1(8×X60 @1.8GHz、2 TOPS CPU 融合、MUSE-Pi-Pro 板卡形态)**控制环零改动**平移完成
+(感知侧是加法:`duck-detect` 新增一个 SpaceMIT EP 后端,控制环之外的唯一改动):
 
 | 指标 | K1 | K3 |
 |---|---|---|
@@ -157,7 +167,11 @@ K1(8×X60 @1.8GHz、2 TOPS CPU 融合、MUSE-Pi-Pro 板卡形态)**代码零改�
 | 空载环率 | **50.0 of 50 Hz · 0 missed** | 49.0 Hz · 0 missed |
 | 行走 | **1.245 m** | 1.145 m |
 | CPU 温度 | **50 °C** | 64 °C |
-| 注意: 满载最低 | **40.7 Hz**(<45 门限) | 未低于 45 |
+| 满载最低 | 40.7 Hz(<45 门限) | 未低于 45 |
+| 板载环率(无隧道) | **50.0 of 50 Hz · 0 missed** | 未测 |
+
+「满载最低」一行**两边都是带 SSH 隧道测的**,是相对读数;摘掉隧道后 K1 的控制环本身
+余量充足(robotd 1.9% 单核),详见 [`K1-PORT.md`](K1-PORT.md)。
 
 途中解掉的一个真问题:K1 的 apt 只提供 `libonnxruntime.so.1.18.1`(低于地板 1.23),
 但 **`python3-spacemit-ort` 包里自带 1.24.0** —— 用 `ORT_DYLIB_PATH` 指过去即可,无需跨机搬运。

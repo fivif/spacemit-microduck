@@ -169,6 +169,6 @@ T=$(grep -l ^control /proc/$(pgrep -f "robotd --fake")/task/*/comm | cut -d/ -f5
 |---|---|
 | K3 换脑移植(构建/联调/踩坑) | [`K3-PORT.md`](K3-PORT.md) |
 | K1 换脑进展(ORT 1.18.1 冲突) | [`K1-PORT.md`](K1-PORT.md) |
-| 观测/动作契约术语 | [`TERMS.md`](TERMS.md) §三 |
+| 观测/动作契约 | `duck-control/src/obs.rs` · `microduck/duck-ipc-proto` |
 | 代码 | `microduck/duck-control/src/policy.rs` · `microduck/robotd/src/control.rs` |
-| 实测脚本 | `K3/k3/bench_policy.py` |
+| 实测脚本 | `k3/k3/bench_policy.py` |

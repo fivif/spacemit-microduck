@@ -38,7 +38,7 @@ K3/
 │   ├── 01-总体架构.md      运行时栈分层 + 组件保留/裁剪矩阵
 │   ├── 02-构建移植方案.md   工具链 / 依赖审计 / ONNX 对接 / 总线 / 系统服务
 │   ├── 03-K3环境实测.md     板卡与环境实测记录
-│   ├── 04-K1版前瞻.md       K1 差异分析（已展开为 ../k1/）
+│   ├── 04-K1版前瞻.md       K1 对照（K1 实测见 ../k1/）
 │   ├── 05-仿真客户端移植.md  v0.11.0 缺 `--sim`；从上游分支移植（4 文件）
 │   └── 06-P1联调实录.md     起身 → 站立 → 行走 实录
 ├── plans/MILESTONES.md     里程碑
@@ -54,12 +54,13 @@ K3/
 
 ```bash
 cd /opt/microduck-k3/microduck
-cargo build --release --workspace \
-    --exclude mediad --exclude duck-detect --exclude pet-detect
+cargo build --release --workspace --exclude mediad
 ```
 
-裁剪原因：`mediad` 依赖 GStreamer 与厂商硬件编码，riscv64 无对应实现；
-`duck-detect` / `pet-detect` 走厂商 NPU 运行时，板上没有。
+裁剪原因：K3 尚未把 `mediad` 这条链跑起来，并非 riscv64 缺实现 —— K1 同架构已编出并运行
+（完整实录见 [`../docs/K1-MEDIA.md`](../docs/K1-MEDIA.md)）。`duck-detect` **不裁**
+—— 它靠 `dlopen` 找运行时，编译期不需要任何厂商库，运行期有 NPU 就用、没有就退回 CPU。
+`pet-detect` 同样**不裁**，它和 rknn 无关，走的是 `robotd` 同一条 ONNX Runtime dlopen 路径。
 
 ---
 

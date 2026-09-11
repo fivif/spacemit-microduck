@@ -456,8 +456,9 @@ own V4L2 mmap loop into `appsrc` gets the real stride from the driver instead of
 
 ## Two things the pipeline will have to decide
 
-**Capture cannot use `v4l2src`.** The rkisp driver hands it a 2-buffer pool and it requeues too
-slowly, dropping every third frame — ~20 fps from a 30 fps sensor, with "lost frames detected".
+**Capture on this board's CSI path cannot use a bare `v4l2src`.** The rkisp driver hands it a
+2-buffer pool and it requeues too slowly, dropping every third frame — ~20 fps from a 30 fps sensor,
+with "lost frames detected".
 `v4l2-ctl --stream-mmap` sustains the full rate, so `microduck_runtime` captures with it and
 pipes raw frames into a `fdsrc` pipeline (`camera.rs:487`). `mediad` needs either that subprocess
 shape or its own V4L2 mmap loop feeding `appsrc`.

@@ -19,13 +19,34 @@ bash run-all.sh --only-ort       # 只验 R1
 | 文件 | 作用 | 在哪跑 |
 |---|---|---|
 | `run-all.sh` | 一键复现:环境 → 构建 → R1 → 冒烟 → 联调提示 | K1 |
-| `env-init.sh` | apt 依赖(cmake/libudev-dev/pkg-config/onnxruntime)+ rustup + 源码就位 + 打补丁 + 环境留档 | K1 |
-| `build-k1.sh` | 裁剪构建(`--exclude mediad duck-detect pet-detect`)+ 架构/glibc 核对 | K1 |
+| `env-init.sh` | apt 依赖(cmake/libudev-dev/pkg-config/onnxruntime/GStreamer -dev)+ rustup + 源码就位 + 打补丁 + 环境留档 | K1 |
+| `build-k1.sh` | 全量构建(K1 不裁任何 crate)+ 架构/glibc 核对 | K1 |
 | **`probe-onnx.sh`** | **R1 探针**:候选 .so 定位 → 符号需求比对 → `dlopen`+`GetApi(23)` → 可选一帧 61→14 推理 | K1 |
 | **`fetch-ort-from-k3.sh`** | **从 K3 搬 1.24.2+spacemit.a1**(K1 的 apt 只有 1.18.1) | **本机** |
 | **`install-ort-k1.sh`** | 把搬来的 ORT 装到 `/opt/microduck-k1/ort/`,写 systemd drop-in + `ORT_DYLIB_PATH` | K1 |
 | `sim-drive.py` | 驱动 `robotd`(hello → enable → init → move),与 K3 版**逐字节相同** | K1 |
+| **`stub-body.py`** | **板内被控对象替身**:同一套 NDJSON 协议,物理换成限速跟随器 —— 用来把隧道从环率测量里摘掉 | K1 |
 | `k3-sim-port.patch` | `--sim` 移植补丁(4 文件 / 529 行 diff),K3 与 K1 通用 | 任意 |
+| `patch-webrtcsink.sh` | 给 `webrtcsink` 打补丁(K1 摄像头链路) | K1 |
+
+## 板载环率:为什么需要 `stub-body.py`
+
+正常联调是「仿真在另一台机器 + SSH 反向隧道」。这一跳单独量出来,单次 `read`+`write` 往返
+p50 8.7 ms / p90 20.7 ms / p99 61.4 ms —— 而一个 tick 的预算是 20 ms。
+丢的帧是隧道丢的,板子的余量被这一跳盖住了。
+
+`stub-body.py` 说的是同一套协议(hello / read / write / gain / torque / slow),只是把物理
+换成一个限速跟随器,直接跑在被测的板子上。策略仍然每 tick 真跑,于是量到的就是板子自己:
+
+```bash
+# K1 上
+python3 stub-body.py 7802 </dev/null >/tmp/stub.log 2>&1 &
+ORT_DYLIB_PATH=/opt/microduck-k1/ort/libonnxruntime.so \
+  setsid nohup ./target/release/robotd --sim 127.0.0.1:7802 </dev/null >/tmp/robotd-local.log 2>&1 &
+./target/release/robotctl health      # loop 50.0 of 50.0 Hz · 0 missed
+```
+
+它**不是**仿真:没有物理、没有接触、没有画面。要看鸭子跑,还得用 `microduck_rl` 那套 MuJoCo。
 
 ## R1 的处理链(关键)
 
@@ -41,7 +62,7 @@ K1 的 apt 只有 `libonnxruntime.so.1.18.1`,**低于主仓地板 1.23** → `or
 所以**直接搬**即可:
 
 ```bash
-# 本机(需要 K3 可达 —— 公网隧道 45.153.245.76:6322 在家也能用)
+# 本机:从 K3 取 ORT(需要 K3 可达)
 cd "K1/k1" && ./fetch-ort-from-k3.sh          # 产出 ort-k1/
 
 # 传到 K1
@@ -55,22 +76,17 @@ bash probe-onnx.sh /opt/microduck-k1/ort/libonnxruntime.so
 > `install-ort-k1.sh` **不覆盖 `/usr/lib`** —— 用 `ORT_DYLIB_PATH` 指过去,只影响 `robotd`,
 > 不动板上其它依赖 1.18.1 的程序(python3-spacemit-ort 等)。
 
-## 传递脚本到 K1(Git Bash)
-
-脚本通过 `ssh`/`scp` 直连板子传递:
+## 传递脚本到 K1
 
 ```bash
-ASKPASS="$(mktemp)"; printf '#!/bin/sh\necho "<password>"\n' > "$ASKPASS"; chmod +x "$ASKPASS"
-export SSH_ASKPASS="$ASKPASS" SSH_ASKPASS_REQUIRE=force DISPLAY=:0
 K1=root@<k1-ip>
 
 # 整套脚本
-for f in run-all.sh env-init.sh build-k1.sh probe-onnx.sh install-ort-k1.sh sim-drive.py k3-sim-port.patch; do
-  scp -O -o StrictHostKeyChecking=accept-new -o PreferredAuthentications=password \
-      -o PubkeyAuthentication=no "$f" "$K1:/tmp/"
-done
-ssh -o PreferredAuthentications=password -o PubkeyAuthentication=no "$K1" 'bash /tmp/run-all.sh'
+scp run-all.sh env-init.sh build-k1.sh probe-onnx.sh install-ort-k1.sh \
+    sim-drive.py stub-body.py k3-sim-port.patch "$K1:/tmp/"
+
+ssh "$K1" 'bash /tmp/run-all.sh'
 ```
 
 > 源码部署见 [`../docs/03-源码获取与构建.md`](../docs/03-源码获取与构建.md)。
-> 注意: `fetch-ort-from-k3.sh` 要在**本机**跑(它用 <tools> 的 `k3ssh.sh`/`k3scp.sh` 走公网隧道)。
+> 注意: `fetch-ort-from-k3.sh` 要在**本机**跑(K3 需可达)。

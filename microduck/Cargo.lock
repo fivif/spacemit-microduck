@@ -1088,6 +1088,7 @@ dependencies = [
  "ort",
  "rustypot",
  "serde",
+ "serde_json",
  "serialport",
  "thiserror 2.0.19",
  "tracing",

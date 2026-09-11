@@ -29,8 +29,8 @@
     <text x="300" y="238" font-size="22" font-weight="600" fill="#e2e8f0">50.0</text>
     <text x="366" y="238" font-size="11.5" fill="#64748b">of 50 Hz, 0 missed</text>
 
-    <text x="600" y="206" font-size="11.5" fill="#94a3b8">Loaded loop rate</text>
-    <text x="600" y="238" font-size="22" font-weight="600" fill="#fbbf24">40.7</text>
-    <text x="666" y="238" font-size="11.5" fill="#64748b">Hz — below the 45 Hz floor</text>
+    <text x="600" y="206" font-size="11.5" fill="#94a3b8">Loaded loop rate (on-board)</text>
+    <text x="600" y="238" font-size="22" font-weight="600" fill="#38bdf8">50.0</text>
+    <text x="666" y="238" font-size="11.5" fill="#64748b">of 50 Hz, 0 missed</text>
   </g>
 </svg>

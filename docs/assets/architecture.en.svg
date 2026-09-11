@@ -30,7 +30,7 @@
 
   <rect x="54" y="278" width="316" height="44" rx="8" fill="#16283f" stroke="#2b4a6f"/>
   <text x="68" y="297" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12.5" font-weight="600" fill="#e2e8f0">Dynamixel bus</text>
-  <text x="68" y="313" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#94a3b8">14 servos + IMU · 1 Mbaud</text>
+  <text x="68" y="313" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#94a3b8">15 servos + IMU · 1 Mbaud</text>
 
   <!-- right: development host -->
   <rect x="470" y="84" width="356" height="258" rx="11" fill="#1b1533" stroke="#4c3d80"/>

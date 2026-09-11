@@ -1,0 +1,25 @@
+# Line endings.
+#
+# These scripts are written on Windows and executed on the board: they are copied
+# over with scp, not through git, so `core.autocrlf` cannot fix them on the way.
+# A CRLF shell script dies on Linux at the first line — the shebang or the next
+# line comes back as `$'\r': command not found` — which is how probe-onnx.sh
+# failed on K1 (2026-09-10) after a plain scp from a Windows checkout.
+#
+# `eol=lf` pins the working tree, not just the index. The index was already LF;
+# only the checkout was converted, and the checkout is what gets copied.
+*.sh    text eol=lf
+*.py    text eol=lf
+*.patch text eol=lf
+*.toml  text eol=lf
+*.rs    text eol=lf
+
+# Never line-ending convert anything binary. `duck-detect/models/` holds the
+# NPU runtime's own inputs; a stray CR would corrupt them silently.
+*.onnx  binary
+*.rknn  binary
+*.so     binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.pdf   binary

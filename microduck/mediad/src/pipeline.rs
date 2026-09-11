@@ -193,6 +193,37 @@ pub enum Source {
     Test,
     /// The head camera, through the rkisp capture path.
     Camera(Camera),
+    /// The head camera, over USB. See [`Usb`], and [`crate::camera::uvc`] for the chain.
+    Usb(Usb),
+}
+
+/// A USB camera, and the one thing about it that has to be told rather than discovered.
+///
+/// **Kept apart from [`Camera`] rather than folded into it**, because almost nothing they carry is
+/// the same: `Camera`'s exposure and gain are rkisp control names in the sensor's own units, and a
+/// UVC camera has different ones in different units. A struct with four fields where two are
+/// meaningless in each case is a struct whose invariants cannot be stated, and this codebase states
+/// them in the type.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Usb {
+    /// The capture node — `/dev/v4l/by-id/…` rather than `/dev/videoN`, because the number depends
+    /// on enumeration order and a UVC camera typically brings two nodes (capture and metadata).
+    pub device: String,
+    /// What to ask the camera for. See [`robotd_params::CameraFormat`] for why this is a config
+    /// value and not a probe.
+    pub format: robotd_params::CameraFormat,
+    /// The camera's **native** mode, which is not what leaves the bin.
+    ///
+    /// These are here rather than in [`Settings`] for the reason `Settings` exists: that struct is
+    /// what the tee, the encoder and the published intrinsics agree on, and they agree on the
+    /// *output*. The capture mode is a fact about one camera that nothing downstream can see.
+    ///
+    /// When it differs from the output, `videoscale` and `videorate` reconcile them — which is what
+    /// keeps `[media] quality` from being a config value that silently decides which camera modes
+    /// have to exist.
+    pub width: u32,
+    pub height: u32,
+    pub fps: u32,
 }
 
 /// The head camera, and the two things it will not work without.
@@ -405,6 +436,16 @@ pub fn start(
             src
         }
         Source::Camera(camera) => camera_source(camera, fps)?,
+        // A bin with one src pad, so this is a source like any other and nothing below needs to
+        // know a second kind of camera exists. The camera's own mode goes in, the output mode goes
+        // in beside it, and `videoscale`/`videorate` inside the bin reconcile the two — the outer
+        // capsfilter below then pins the same output numbers this element promises.
+        Source::Usb(usb) => crate::camera::uvc::source(
+            &usb.device,
+            usb.format,
+            (usb.width, usb.height, usb.fps),
+            (width, height, fps),
+        )?,
     };
 
     // Pinned rather than negotiated, because both branches of the tee depend on the answer, and a

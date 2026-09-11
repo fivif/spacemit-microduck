@@ -1,9 +1,15 @@
 //! Finding other Microducks in this Microduck's camera, on the NPU.
 //!
 //! The model is trained in [`duck_detector`](https://github.com/pollen-robotics/duck_detector) and
-//! arrives here as an INT8 `.rknn`: one class, 320×320 in, 2100 candidate boxes out. This crate is
-//! the three things between a camera frame and a bounding box — the letterbox, the runtime, and the
-//! decode — plus `duck-bench`, which measures them on a real board.
+//! arrives here in one of two forms: an INT8 `.rknn` for a Rockchip NPU ([`rknn`]), or the ONNX
+//! export for ONNX Runtime ([`onnx`]) — one class, 320×320 in, 2100 candidate boxes out. This crate
+//! is the three things between a camera frame and a bounding box — the letterbox, the runtime, and
+//! the decode — plus `duck-bench`, which measures them on a real board.
+//!
+//! **Three runtimes, one detector.** `rknn` is the Rockchip NPU; `onnx` is ONNX Runtime either on
+//! the CPU or on a SpaceMiT NPU, since the vendor provider attaches to the same session rather than
+//! replacing it ([`spacemit`]). Which of the three is in use is a property of the loaded model, not
+//! of a config value, and [`onnx::Model::runtime`] is where it is written down.
 //!
 //! **Everything here has to agree with how the model was trained**, and nothing enforces that
 //! across the two repositories except this comment and the numbers below:
@@ -18,6 +24,11 @@
 
 pub mod onnx;
 pub mod rknn;
+/// The vendor NPU provider for a SpaceMiT board, where there is no RKNN runtime to dlopen.
+///
+/// Unix-only, like the rest of this workspace: it reaches the provider through `dlopen` with
+/// `RTLD_GLOBAL`, which is what makes a vendor blob loadable at all — see the module.
+pub mod spacemit;
 
 /// What the head emits per candidate: cx, cy, w, h, score.
 const STRIDE: usize = 5;

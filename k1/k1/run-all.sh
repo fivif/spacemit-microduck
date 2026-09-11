@@ -36,7 +36,7 @@ fi
 
 # ---------- 2. 构建 ----------
 if [ $SKIP_BUILD -eq 0 ] && [ $ONLY_ORT -eq 0 ]; then
-    banner "2/5 裁剪构建"
+    banner "2/5 全量构建"
     bash "$HERE/build-k1.sh" 2>&1 | tee /tmp/k1-build.log
 fi
 
@@ -78,7 +78,7 @@ cat <<'EOF'
 在 Windows 开发台(两个终端):
   # ① 本地仿真(默认 SIT 起始)
   cd microduck_rl
-  PYTHONPATH=src <repo>/k3/local-sim/.venv/Scripts/python.exe \
+  PYTHONPATH=src <venv>/Scripts/python.exe \
       -m mjlab_microduck.sim.body_server --port 7801
   # ② 把仿真端口映射到板子
   ssh -N -R 7801:127.0.0.1:7801 root@<board> \

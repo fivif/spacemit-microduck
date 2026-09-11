@@ -6,13 +6,17 @@
 # ③ K1 缺 cmake/libudev-dev/pkg-config,一并装上。
 set -euo pipefail
 
-echo "[1/5] apt 依赖(cmake / libudev-dev / pkg-config / ONNX Runtime)…"
+echo "[1/5] apt 依赖(cmake / libudev-dev / pkg-config / ONNX Runtime / GStreamer -dev)…"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 # libudev-dev + pkg-config 是 padd -> gilrs -> libudev-sys 的构建依赖。
+# gstreamer 的 -dev 包是 mediad(gstreamer-sys 链)的构建依赖:它们没装的时候整个
+# workspace 会在 mediad 处断掉 —— 这不是 riscv64 缺 GStreamer/厂商编码支持,
+# 装齐即过。见 docs/03 §4。
 # onnxruntime 是策略推理用的 libonnxruntime.so —— 注意 K1 apt 里是 1.2.2 包版本,
 # 实际提供 libonnxruntime.so.1.18.1,低于主仓地板 1.23,见 docs/04。
-apt-get install -y -qq cmake libudev-dev pkg-config onnxruntime
+apt-get install -y -qq cmake libudev-dev pkg-config onnxruntime \
+    libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev
 
 echo "[2/5] rustup…"
 if ! command -v rustc >/dev/null 2>&1; then
@@ -30,17 +34,16 @@ mkdir -p /opt/microduck-k1
 cd /opt/microduck-k1
 if [ ! -d microduck ]; then
   # 源码从开发机打包传上来(见 docs/03 §1)
-  if [ -f microduck-k1-full.tar.gz ]; then
-    tar xzf microduck-k1-full.tar.gz && rm -f microduck-k1-full.tar.gz
-  elif [ -f /tmp/microduck-k1-full.tar.gz ]; then
-    tar xzf /tmp/microduck-k1-full.tar.gz -C /opt/microduck-k1
+  if [ -f microduck-k1-src.tar.gz ]; then
+    tar xzf microduck-k1-src.tar.gz
+  elif [ -f /tmp/microduck-k1-src.tar.gz ]; then
+    tar xzf /tmp/microduck-k1-src.tar.gz -C /opt/microduck-k1
   else
-    echo "!! 未找到源码包。请先在本机执行 docs/03 §2 的打包+scp,再重跑本脚本。" >&2
+    echo "!! 未找到源码包。请先按 docs/03 §1 打包并 scp 到 /opt/microduck-k1/,再重跑本脚本。" >&2
     exit 1
   fi
 fi
 cd microduck
-git config --global --add safe.directory "$(pwd)"   # 否则 git 报"可疑的仓库所有权"
 
 echo "[4/5] 补 --sim(若分支未带)…"
 if [ ! -f duck-control/src/sim.rs ]; then

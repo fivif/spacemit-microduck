@@ -60,11 +60,13 @@ MuJoCo through sit-to-stand, walking, and turning without falling.
 
 | Metric | Value |
 |---|---|
-| Trimmed build | 43m39s, 313 crates, `robotd` 7.3 MB |
+| Build | 43m39s, 313 crates, `robotd` 7.3 MB |
 | Idle loop | 50.0 of 50 Hz, 0 missed ticks |
 | Motion | sit-to-stand, 1.245 m walking, turning, no falls |
-| Control loop (with simulator) | 46.5-48.5 of 50 Hz |
-| Control loop (fully loaded) | 40.7 Hz — below the 45 Hz health floor |
+| Control loop (with simulator) | 46.5-48.5 of 50 Hz (simulator on another machine, over an SSH tunnel) |
+| Control loop (fully loaded) | 40.7 Hz — that is the **tunnel's** ceiling, not the board's |
+| Control loop (on-board) | **50.0 of 50 Hz, 0 missed ticks** (simulator moved into the board at 127.0.0.1, 48 s) |
+| On-board cost | `robotd` **1.9% of one core**, system 98.5% idle |
 | CPU temperature | 50 C |
 
 </details>
@@ -114,12 +116,22 @@ The connection is lazy and retried every tick, so a daemon started before its si
 unhealthy until the simulator answers, and restarting the simulator does not mean restarting the
 robot.
 
-Trimmed build for RISC-V targets (no GStreamer or vendor NPU runtime):
+K3's build drops `mediad` only (K3 has not brought that path up — it is not something riscv64
+cannot do); K1 builds it and runs it — its USB camera path goes MJPEG → UYVY →
+`spacemith264enc` (hardware H.264) → WebRTC with real frames, **29.97 of 30 fps, 0 dropped** at the
+consumer (see [`docs/K1-MEDIA.md`](docs/K1-MEDIA.md)). The earlier failure was **not** riscv64
+lacking GStreamer or the vendor encoder, but the board having no GStreamer `-dev` packages:
 
 ```bash
-cargo build --release --workspace \
-    --exclude mediad --exclude duck-detect --exclude pet-detect
+# K1: the whole workspace
+cargo build --release --workspace
+# K3: mediad still excluded
+cargo build --release --workspace --exclude mediad
 ```
+
+`duck-detect` is **not** trimmed: it reaches its runtimes through `dlopen`, so it builds against no
+vendor library and runs on whatever the board turns out to have — an NPU if there is one, the CPU if
+there is not (see [`docs/K1-PORT.md`](docs/K1-PORT.md)). `duck-bench` is a binary in that crate.
 
 ## Documentation
 
@@ -128,6 +140,7 @@ cargo build --release --workspace \
 | [`docs/K3-PORT.md`](docs/K3-PORT.md) | K3 port: goal, environment, build, the `--sim` gap, integration results, traps |
 | [`docs/POLICY-RUNTIME.md`](docs/POLICY-RUNTIME.md) | What one tick of inference costs, and how the six networks are selected |
 | [`docs/K1-PORT.md`](docs/K1-PORT.md) | K1 port: environment, build, the ONNX Runtime version conflict and its resolution |
+| [`docs/K1-MEDIA.md`](docs/K1-MEDIA.md) | K1 camera path: `mediad`'s GStreamer dependencies, UVC capture, the vendor encoder, and the WebRTC stream |
 
 ## License and provenance
 
